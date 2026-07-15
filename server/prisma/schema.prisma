@@ -1,20 +1,359 @@
 generator client {
-  provider = "prisma-client"
-  output   = "../generated/prisma"
+    provider = "prisma-client"
+    output   = "../generated/prisma"
 }
 
 datasource db {
-  provider = "postgresql"
+    provider = "postgresql"
 }
 
-model Candidate {
-  id        Int      @id @default(autoincrement())
-  firstName String
-  lastName  String
-  email     String   @unique
-  phone     String?
-  position  String?
-  status    String   @default("new")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+enum Role {
+    CANDIDATE
+    RECRUITER
+    ADMIN
+}
+
+enum AttributeType {
+    STRING
+    TEXT
+    IMAGE
+    NUMBER
+    DATE
+    DATE_RANGE
+    BOOLEAN
+    SELECT
+}
+
+enum ResumeStatus {
+    DRAFT
+    PUBLISHED
+}
+
+enum Language {
+    EN
+    RU
+}
+
+enum Theme {
+    LIGHT
+    DARK
+}
+
+enum SystemAttributeKey {
+    FIRST_NAME
+    LAST_NAME
+    LOCATION
+    PROFILE_IMAGE
+}
+
+enum AccessOperator {
+    EQUALS
+    NOT_EQUALS
+    GREATER_THAN
+    GREATER_THAN_OR_EQUALS
+    LESS_THAN
+    LESS_THAN_OR_EQUALS
+    IS_TRUE
+    IS_FALSE
+}
+
+enum PositionLevel {
+    JUNIOR
+    MIDDLE
+    SENIOR
+    LEAD
+    C_LEVEL
+}
+
+model User {
+    id        String  @id @default(uuid()) @db.Uuid
+    firstName String
+    lastName  String
+    email     String  @unique
+    location  String?
+    imageUrl  String?
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+    isBlocked Boolean  @default(false)
+    version   Int      @default(1)
+
+    language Language @default(EN)
+    theme    Theme    @default(LIGHT)
+
+    roles           UserRole[]
+    projects        Project[]
+    attributeValues CandidateAttributeValue[]
+    resumes         Resume[]
+    comments        PositionComment[]
+    resumeLikes     ResumeLike[]
+    oauthAccounts   OAuthAccount[]
+}
+
+model UserRole {
+    userId String @db.Uuid
+    role   Role
+
+    user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    @@id([userId, role])
+    @@index([role])
+}
+
+model Project {
+    id          String    @id @default(uuid()) @db.Uuid
+    title       String
+    description String?
+    startDate   DateTime?
+    endDate     DateTime?
+    createdAt   DateTime  @default(now())
+    updatedAt   DateTime  @updatedAt
+    version     Int       @default(1)
+
+    candidateId String @db.Uuid
+    candidate   User   @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+
+    tags ProjectTag[]
+
+    @@index([candidateId])
+}
+
+model Tag {
+    id             String @id @default(uuid()) @db.Uuid
+    name           String
+    normalizedName String @unique
+
+    projectLinks        ProjectTag[]
+    positionFilterLinks PositionProjectTag[]
+}
+
+model ProjectTag {
+    projectId String @db.Uuid
+    tagId     String @db.Uuid
+
+    project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+    tag Tag @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+    @@id([projectId, tagId])
+    @@index([tagId])
+}
+
+model Attribute {
+    id             String              @id @default(uuid()) @db.Uuid
+    name           String
+    normalizedName String              @unique
+    description    String?
+    type           AttributeType
+    systemKey      SystemAttributeKey? @unique
+
+    version   Int      @default(1)
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    categoryId String            @db.Uuid
+    category   AttributeCategory @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+
+    values        CandidateAttributeValue[]
+    options       AttributeOption[]
+    positionLinks PositionAttribute[]
+    accessRules   PositionAccessRule[]
+
+    @@index([categoryId])
+}
+
+model AttributeCategory {
+    id             String @id @default(uuid()) @db.Uuid
+    name           String
+    normalizedName String @unique
+    sortOrder      Int    @default(0)
+
+    attributes Attribute[]
+}
+
+model AttributeOption {
+    id        String @id @default(uuid()) @db.Uuid
+    label     String
+    sortOrder Int    @default(0)
+
+    attributeId String    @db.Uuid
+    attribute   Attribute @relation(fields: [attributeId], references: [id], onDelete: Cascade)
+
+    candidateValues CandidateAttributeValue[]
+    accessRules     PositionAccessRule[]
+
+    @@unique([attributeId, label])
+}
+
+model CandidateAttributeValue {
+    id          String @id @default(uuid()) @db.Uuid
+    candidateId String @db.Uuid
+    attributeId String @db.Uuid
+
+    stringValue  String?
+    numberValue  Decimal?
+    booleanValue Boolean?
+    dateValue    DateTime?
+    dateFrom     DateTime?
+    dateTo       DateTime?
+    imageUrl     String?
+
+    selectedOptionId String? @db.Uuid
+
+    version   Int      @default(1)
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    candidate User @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+
+    attribute Attribute @relation(fields: [attributeId], references: [id], onDelete: Cascade)
+
+    selectedOption AttributeOption? @relation(fields: [selectedOptionId], references: [id], onDelete: SetNull)
+
+    @@unique([candidateId, attributeId])
+    @@index([attributeId])
+    @@index([selectedOptionId])
+}
+
+model Position {
+    id          String         @id @default(uuid()) @db.Uuid
+    title       String
+    description String?
+    company     String?
+    level       PositionLevel?
+    isPublic    Boolean        @default(false)
+    maxProjects Int            @default(3)
+    version     Int            @default(1)
+    createdAt   DateTime       @default(now())
+    updatedAt   DateTime       @updatedAt
+
+    resumes           Resume[]
+    attributes        PositionAttribute[]
+    accessRules       PositionAccessRule[]
+    projectTagFilters PositionProjectTag[]
+    comments          PositionComment[]
+
+    @@index([updatedAt(sort: Desc)])
+}
+
+model PositionProjectTag {
+    positionId String @db.Uuid
+    tagId      String @db.Uuid
+
+    position Position @relation(fields: [positionId], references: [id], onDelete: Cascade)
+
+    tag Tag @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+    @@id([positionId, tagId])
+    @@index([tagId])
+}
+
+model PositionAttribute {
+    positionId  String @db.Uuid
+    attributeId String @db.Uuid
+
+    sortOrder Int      @default(0)
+    createdAt DateTime @default(now())
+
+    position Position @relation(fields: [positionId], references: [id], onDelete: Cascade)
+
+    attribute Attribute @relation(fields: [attributeId], references: [id], onDelete: Cascade)
+
+    @@id([positionId, attributeId])
+    @@index([attributeId])
+}
+
+model PositionAccessRule {
+    id String @id @default(uuid()) @db.Uuid
+
+    positionId  String         @db.Uuid
+    attributeId String         @db.Uuid
+    operator    AccessOperator
+
+    stringValue String?
+    numberValue Decimal?
+    dateValue   DateTime?
+    dateFrom    DateTime?
+    dateTo      DateTime?
+    optionId    String?   @db.Uuid
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    position Position @relation(fields: [positionId], references: [id], onDelete: Cascade)
+
+    attribute Attribute @relation(fields: [attributeId], references: [id], onDelete: Cascade)
+
+    option AttributeOption? @relation(fields: [optionId], references: [id], onDelete: Cascade)
+
+    @@index([positionId])
+    @@index([attributeId])
+    @@index([optionId])
+}
+
+model PositionComment {
+    id      String @id @default(uuid()) @db.Uuid
+    content String
+
+    createdAt DateTime @default(now())
+
+    positionId String @db.Uuid
+    authorId   String @db.Uuid
+
+    position Position @relation(fields: [positionId], references: [id], onDelete: Cascade)
+
+    author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+    @@index([positionId, createdAt])
+    @@index([authorId])
+}
+
+model Resume {
+    id          String       @id @default(uuid()) @db.Uuid
+    status      ResumeStatus @default(DRAFT)
+    createdAt   DateTime     @default(now())
+    updatedAt   DateTime     @updatedAt
+    publishedAt DateTime?
+    version     Int          @default(1)
+
+    candidateId String @db.Uuid
+    positionId  String @db.Uuid
+
+    candidate User @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+
+    position Position @relation(fields: [positionId], references: [id], onDelete: Cascade)
+
+    likes ResumeLike[]
+
+    @@unique([candidateId, positionId])
+    @@index([status, createdAt])
+    @@index([positionId])
+}
+
+model ResumeLike {
+    resumeId    String   @db.Uuid
+    recruiterId String   @db.Uuid
+    createdAt   DateTime @default(now())
+
+    resume Resume @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+
+    recruiter User @relation(fields: [recruiterId], references: [id], onDelete: Cascade)
+
+    @@id([resumeId, recruiterId])
+    @@index([recruiterId])
+}
+
+model OAuthAccount {
+    id                String @id @default(uuid()) @db.Uuid
+    provider          String
+    providerAccountId String
+
+    userId String @db.Uuid
+    user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    createdAt DateTime @default(now())
+
+    @@unique([provider, providerAccountId])
+    @@unique([userId, provider])
+    @@index([userId])
 }
