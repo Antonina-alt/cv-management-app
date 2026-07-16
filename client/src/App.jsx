@@ -1,21 +1,27 @@
-import { useEffect, useState } from 'react'
+import { BrowserRouter, Route, Routes } from 'react-router-dom'
+import { AuthProvider } from './context/AuthContext.jsx'
+import ProtectedRoute from './components/ProtectedRoute.jsx'
+import LoginPage from './pages/LoginPage.jsx'
+import RegisterPage from './pages/RegisterPage.jsx'
+import ProfilePage from './pages/ProfilePage.jsx'
 
-const App = () => {
-    const [apiStatus, setApiStatus] = useState('checking...')
-
-    useEffect(() => {
-        fetch('/api/health')
-            .then((res) => res.json())
-            .then((data) => setApiStatus(data.status))
-            .catch(() => setApiStatus('unreachable'))
-    }, [])
-
-    return (
-        <div>
-            <h1>React App</h1>
-            <p>API status: {apiStatus}</p>
-        </div>
-    )
-}
+const App = () => (
+    <BrowserRouter>
+        <AuthProvider>
+            <Routes>
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/register" element={<RegisterPage />} />
+                <Route
+                    path="/"
+                    element={(
+                        <ProtectedRoute>
+                            <ProfilePage />
+                        </ProtectedRoute>
+                    )}
+                />
+            </Routes>
+        </AuthProvider>
+    </BrowserRouter>
+)
 
 export default App
