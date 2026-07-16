@@ -33,7 +33,7 @@ spec/
   requirements.md  ТЗ (источник истины)
   architecture.md  архитектура и решения
   tasks/           план: задачи + трекер прогресса
-docker-compose.yml Postgres + Azurite (создаётся в задаче 01)
+docker-compose.yml Postgres + Azurite
 ```
 
 ## Требования к окружению
@@ -91,13 +91,29 @@ cp .env.example server/.env        # заполнить значениями
 cd server
 npm install
 npx prisma migrate dev
-npm run dev                         # http://localhost:5000
+npm run dev                         # http://localhost:5050
+curl http://localhost:5050/api/health   # {"status":"ok"}
 
 # 4. Клиент (в другом терминале)
 cd client
 npm install
 npm run dev                         # http://localhost:5173
 ```
+
+> `PORT` по умолчанию `5050` (не `5000`): на macOS порт 5000 обычно занят системным
+> AirPlay Receiver. При необходимости смени порт в `server/.env`.
+
+### Тесты
+
+```bash
+cd server && npm test    # Vitest + Supertest, включая smoke-тест GET /api/health
+cd client && npm test    # Vitest + Testing Library
+```
+
+### MCP для сквозной проверки
+
+`.mcp.json` в корне поднимает Playwright MCP (браузер) и Postgres MCP (read-only доступ к
+БД из `DATABASE_URL`) — см. [spec/architecture.md](spec/architecture.md#7-mcp-серверы-для-сквозной-проверки-verification).
 
 ## Разработка по спецификации
 
@@ -108,5 +124,6 @@ npm run dev                         # http://localhost:5173
 
 ## Статус
 
-Ранняя стадия: определена Prisma-схема данных и каркас проекта. Реализация идёт по задачам
-`spec/tasks/`, начиная с окружения (задача 01).
+Окружение настроено (задача 01): Docker-инфраструктура, миграции, `GET /api/health`,
+тест-раннеры клиента и сервера, MCP для сквозной проверки. Дальше — по задачам
+`spec/tasks/`, начиная с аутентификации (задача 02).
