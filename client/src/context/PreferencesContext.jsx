@@ -1,12 +1,11 @@
-import { createContext, useCallback, useContext, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import i18n from '../i18n.js'
-import { useAuth } from './AuthContext.jsx'
+import { useAuth } from './auth-context.js'
 import * as authApi from '../api/auth.js'
+import { PreferencesContext } from './preferences-context.js'
 
 const THEME_KEY = 'cvapp-theme'
 const LANGUAGE_KEY = 'cvapp-language'
-
-const PreferencesContext = createContext(null)
 
 const normalizeTheme = (theme) => (theme === 'DARK' ? 'dark' : 'light')
 const normalizeLanguage = (language) => (language === 'RU' ? 'ru' : 'en')
@@ -62,5 +61,3 @@ export const PreferencesProvider = ({ children }) => {
         </PreferencesContext.Provider>
     )
 }
-
-export const usePreferences = () => useContext(PreferencesContext)

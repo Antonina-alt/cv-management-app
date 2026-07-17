@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next'
-import { useAuth } from '../context/AuthContext.jsx'
+import { useAuth } from '../context/auth-context.js'
 
 const ProfilePage = () => {
     const { t } = useTranslation()

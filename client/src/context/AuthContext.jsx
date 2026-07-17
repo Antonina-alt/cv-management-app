@@ -1,7 +1,6 @@
-import { createContext, useCallback, useContext, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import * as authApi from '../api/auth.js'
-
-const AuthContext = createContext(null)
+import { AuthContext } from './auth-context.js'
 
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null)
@@ -19,8 +18,13 @@ export const AuthProvider = ({ children }) => {
     }, [])
 
     useEffect(() => {
-        refresh()
-    }, [refresh])
+        let cancelled = false
+        authApi.me()
+            .then((current) => { if (!cancelled) setUser(current) })
+            .catch(() => { if (!cancelled) setUser(null) })
+            .finally(() => { if (!cancelled) setLoading(false) })
+        return () => { cancelled = true }
+    }, [])
 
     const login = async (credentials) => {
         const current = await authApi.login(credentials)
@@ -49,5 +53,3 @@ export const AuthProvider = ({ children }) => {
         </AuthContext.Provider>
     )
 }
-
-export const useAuth = () => useContext(AuthContext)

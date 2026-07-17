@@ -2,8 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { Container, Nav, Navbar, Form } from 'react-bootstrap'
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { useAuth } from '../../context/AuthContext.jsx'
-import { usePreferences } from '../../context/PreferencesContext.jsx'
+import { useAuth } from '../../context/auth-context.js'
+import { usePreferences } from '../../context/preferences-context.js'
 import { getNavItems } from './navConfig.js'
 
 const AppLayout = () => {
