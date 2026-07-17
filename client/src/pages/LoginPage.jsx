@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '../context/AuthContext.jsx'
 
 const LoginPage = () => {
+    const { t } = useTranslation()
     const { login } = useAuth()
     const navigate = useNavigate()
     const [email, setEmail] = useState('')
@@ -22,21 +24,21 @@ const LoginPage = () => {
 
     return (
         <div>
-            <h1>Log in</h1>
+            <h1>{t('auth.loginTitle')}</h1>
             <form onSubmit={handleSubmit}>
                 <div>
-                    <label htmlFor="email">Email</label>
+                    <label htmlFor="email">{t('auth.email')}</label>
                     <input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
                 </div>
                 <div>
-                    <label htmlFor="password">Password</label>
+                    <label htmlFor="password">{t('auth.password')}</label>
                     <input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
                 </div>
                 {error && <p role="alert">{error}</p>}
-                <button type="submit">Log in</button>
+                <button type="submit">{t('auth.submitLogin')}</button>
             </form>
             <p>
-                No account? <Link to="/register">Register</Link>
+                {t('auth.noAccount')} <Link to="/register">{t('auth.registerTitle')}</Link>
             </p>
         </div>
     )

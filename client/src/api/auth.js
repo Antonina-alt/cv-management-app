@@ -21,3 +21,5 @@ export const login = (data) => request('/login', { method: 'POST', body: JSON.st
 export const logout = () => request('/logout', { method: 'POST' });
 
 export const me = () => request('/me', { method: 'GET' });
+
+export const updateMe = (patch) => request('/me', { method: 'PATCH', body: JSON.stringify(patch) });

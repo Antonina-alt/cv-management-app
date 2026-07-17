@@ -8,21 +8,42 @@ describe('App', () => {
         window.history.pushState({}, '', '/')
     })
 
-    it('redirects an unauthenticated visitor to the login page', async () => {
+    it('shows the public home page for an unauthenticated visitor', async () => {
         vi.stubGlobal('fetch', vi.fn(() =>
             Promise.resolve({ ok: false, status: 401, json: () => Promise.resolve({ message: 'Not authenticated' }) })
         ))
 
         render(<App />)
 
+        await waitFor(() => expect(screen.getByRole('heading', { name: 'Home' })).toBeInTheDocument())
+    })
+
+    it('redirects an unauthenticated visitor away from /profile to login', async () => {
+        vi.stubGlobal('fetch', vi.fn(() =>
+            Promise.resolve({ ok: false, status: 401, json: () => Promise.resolve({ message: 'Not authenticated' }) })
+        ))
+        window.history.pushState({}, '', '/profile')
+
+        render(<App />)
+
         await waitFor(() => expect(screen.getByRole('heading', { name: 'Log in' })).toBeInTheDocument())
     })
 
-    it('shows the profile page for an authenticated visitor', async () => {
-        const user = { id: '1', email: 'a@example.com', firstName: 'Ada', lastName: 'Lovelace', roles: ['CANDIDATE'] }
+    it('shows the profile page for an authenticated visitor at /profile', async () => {
+        const user = {
+            id: '1',
+            email: 'a@example.com',
+            firstName: 'Ada',
+            lastName: 'Lovelace',
+            roles: ['CANDIDATE'],
+            theme: 'LIGHT',
+            language: 'EN',
+            version: 1,
+        }
         vi.stubGlobal('fetch', vi.fn(() =>
             Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(user) })
         ))
+        window.history.pushState({}, '', '/profile')
 
         render(<App />)
 

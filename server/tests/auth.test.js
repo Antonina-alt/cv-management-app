@@ -13,7 +13,6 @@ const register = (overrides = {}) => {
     return request(app)
         .post("/api/auth/register")
         .send({
-            email,
             password: "correct-password",
             firstName: "Ada",
             lastName: "Lovelace",
@@ -110,6 +109,59 @@ describe("POST /api/auth/login and GET /api/auth/me", () => {
             .send({ email, password: "correct-password" });
 
         expect(res.status).toBe(401);
+    });
+});
+
+describe("PATCH /api/auth/me", () => {
+    const loginAgent = async (email) => {
+        await register({ email });
+        const agent = request.agent(app);
+        await agent.post("/api/auth/login").send({ email, password: "correct-password" });
+        return agent;
+    };
+
+    it("updates theme and increments version", async () => {
+        const email = uniqueEmail("theme");
+        const agent = await loginAgent(email);
+
+        const res = await agent.patch("/api/auth/me").send({ theme: "DARK", version: 1 });
+
+        expect(res.status).toBe(200);
+        expect(res.body.theme).toBe("DARK");
+        expect(res.body.version).toBe(2);
+    });
+
+    it("updates language", async () => {
+        const email = uniqueEmail("lang");
+        const agent = await loginAgent(email);
+
+        const res = await agent.patch("/api/auth/me").send({ language: "RU", version: 1 });
+
+        expect(res.status).toBe(200);
+        expect(res.body.language).toBe("RU");
+    });
+
+    it("rejects without a cookie with 401", async () => {
+        const res = await request(app).patch("/api/auth/me").send({ theme: "DARK", version: 1 });
+        expect(res.status).toBe(401);
+    });
+
+    it("rejects a stale version with 409", async () => {
+        const email = uniqueEmail("stale");
+        const agent = await loginAgent(email);
+
+        const res = await agent.patch("/api/auth/me").send({ theme: "DARK", version: 99 });
+
+        expect(res.status).toBe(409);
+    });
+
+    it("rejects missing version with 400", async () => {
+        const email = uniqueEmail("noversion");
+        const agent = await loginAgent(email);
+
+        const res = await agent.patch("/api/auth/me").send({ theme: "DARK" });
+
+        expect(res.status).toBe(400);
     });
 });
 

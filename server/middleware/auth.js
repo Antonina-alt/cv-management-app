@@ -26,6 +26,9 @@ export const requireAuth = async (req, res, next) => {
             firstName: user.firstName,
             lastName: user.lastName,
             roles: user.roles.map((r) => r.role),
+            theme: user.theme,
+            language: user.language,
+            version: user.version,
         };
 
         next();

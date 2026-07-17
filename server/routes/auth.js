@@ -25,6 +25,9 @@ const toPublicUser = (user) => ({
     firstName: user.firstName,
     lastName: user.lastName,
     roles: user.roles.map((r) => r.role),
+    theme: user.theme,
+    language: user.language,
+    version: user.version,
 });
 
 router.post('/register', async (req, res) => {
@@ -42,17 +45,16 @@ router.post('/register', async (req, res) => {
     const passwordHash = await bcrypt.hash(password, 10);
 
     const user = await prisma.$transaction(async (tx) => {
-        const created = await tx.user.create({
+        return tx.user.create({
             data: {
                 email,
                 firstName,
                 lastName,
-                credential: { create: { passwordHash } },
-                roles: { create: { role: 'CANDIDATE' } },
+                credential: {create: {passwordHash}},
+                roles: {create: {role: 'CANDIDATE'}},
             },
-            include: { roles: true },
+            include: {roles: true},
         });
-        return created;
     });
 
     const token = generateToken(user.id);
@@ -93,6 +95,50 @@ router.post('/logout', (req, res) => {
 
 router.get('/me', requireAuth, (req, res) => {
     res.status(200).json(req.user);
+})
+
+router.patch('/me', requireAuth, async (req, res) => {
+    const { theme, language, version } = req.body ?? {};
+
+    if (version === undefined) {
+        return res.status(400).json({ message: 'version is required' });
+    }
+
+    if (theme !== undefined && !['LIGHT', 'DARK'].includes(theme)) {
+        return res.status(400).json({ message: 'theme must be LIGHT or DARK' });
+    }
+
+    if (language !== undefined && !['EN', 'RU'].includes(language)) {
+        return res.status(400).json({ message: 'language must be EN or RU' });
+    }
+
+    const data = {};
+    if (theme !== undefined) data.theme = theme;
+    if (language !== undefined) data.language = language;
+
+    if (Object.keys(data).length === 0) {
+        return res.status(400).json({ message: 'theme or language is required' });
+    }
+
+    const result = await prisma.user.updateMany({
+        where: { id: req.user.id, version },
+        data: { ...data, version: { increment: 1 } },
+    });
+
+    if (result.count === 0) {
+        const current = await prisma.user.findUnique({
+            where: { id: req.user.id },
+            include: { roles: true },
+        });
+        return res.status(409).json({ message: 'Version conflict', user: toPublicUser(current) });
+    }
+
+    const updated = await prisma.user.findUnique({
+        where: { id: req.user.id },
+        include: { roles: true },
+    });
+
+    res.status(200).json(toPublicUser(updated));
 })
 
 export default router;

@@ -1,0 +1,56 @@
+{
+    "nav": {
+        "home": "Home",
+        "positions": "Positions",
+        "profile": "My Profile",
+        "attributes": "Attribute Library",
+        "admin": "Admin"
+    },
+    "header": {
+        "searchPlaceholder": "Search...",
+        "searchLabel": "Search",
+        "login": "Log in",
+        "register": "Register",
+        "logout": "Log out",
+        "toggleTheme": "Toggle theme",
+        "toggleNav": "Toggle navigation"
+    },
+    "home": {
+        "title": "Home",
+        "description": "Public stats, recent resumes and top candidates will appear here."
+    },
+    "positions": {
+        "title": "Positions",
+        "description": "The list of positions will appear here."
+    },
+    "search": {
+        "title": "Search results",
+        "resultsFor": "Results for \"{{query}}\"",
+        "noQuery": "Enter a search term in the header to see results.",
+        "description": "Full-text search will be implemented in a later task."
+    },
+    "attributes": {
+        "title": "Attribute Library",
+        "description": "Attribute management will appear here."
+    },
+    "admin": {
+        "title": "Administration",
+        "description": "User and role management will appear here."
+    },
+    "auth": {
+        "loginTitle": "Log in",
+        "registerTitle": "Register",
+        "email": "Email",
+        "password": "Password",
+        "firstName": "First name",
+        "lastName": "Last name",
+        "noAccount": "No account?",
+        "haveAccount": "Already have an account?",
+        "submitLogin": "Log in",
+        "submitRegister": "Register"
+    },
+    "profile": {
+        "title": "Profile",
+        "roles": "Roles"
+    }
+}
