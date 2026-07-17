@@ -31,7 +31,54 @@
     },
     "attributes": {
         "title": "Attribute Library",
-        "description": "Attribute management will appear here."
+        "description": "Create and manage reusable candidate attributes.",
+        "searchPlaceholder": "Search by name...",
+        "categoryFilter": "Category",
+        "allCategories": "All categories",
+        "recentlyUsed": "Recently used",
+        "loading": "Loading...",
+        "empty": "No attributes found.",
+        "systemBadge": "System",
+        "systemNoDelete": "System attributes cannot be deleted",
+        "conflict": "This attribute was changed by someone else. The list has been refreshed.",
+        "table": {
+            "name": "Name",
+            "category": "Category",
+            "type": "Type",
+            "description": "Description"
+        },
+        "types": {
+            "STRING": "Text",
+            "TEXT": "Long text",
+            "IMAGE": "Image",
+            "NUMBER": "Number",
+            "DATE": "Date",
+            "DATE_RANGE": "Date range",
+            "BOOLEAN": "Yes/No",
+            "SELECT": "Select"
+        },
+        "toolbar": {
+            "create": "Create",
+            "edit": "Edit",
+            "delete": "Delete"
+        },
+        "form": {
+            "createTitle": "Create attribute",
+            "editTitle": "Edit attribute",
+            "name": "Name",
+            "description": "Description",
+            "category": "Category",
+            "type": "Type",
+            "options": "Options",
+            "optionPlaceholder": "Option {{n}}",
+            "addOption": "Add option",
+            "cancel": "Cancel",
+            "save": "Save"
+        },
+        "deleteConfirm": {
+            "title": "Delete attribute",
+            "body": "Delete \"{{name}}\"? This cannot be undone."
+        }
     },
     "admin": {
         "title": "Administration",

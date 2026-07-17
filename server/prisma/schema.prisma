@@ -172,6 +172,7 @@ model Attribute {
     accessRules   PositionAccessRule[]
 
     @@index([categoryId])
+    @@index([normalizedName(ops: raw("text_pattern_ops"))], type: BTree)
 }
 
 model AttributeCategory {

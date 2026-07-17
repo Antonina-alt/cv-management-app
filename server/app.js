@@ -4,6 +4,8 @@ import cookieParser from "cookie-parser";
 import * as path from "node:path";
 import healthRouter from "./routes/health.js";
 import authRouter from "./routes/auth.js";
+import attributesRouter from "./routes/attributes.js";
+import attributeCategoriesRouter from "./routes/attributeCategories.js";
 
 dotenv.config();
 
@@ -18,6 +20,8 @@ app.get('/', (req, res) => {
 
 app.use('/api/health', healthRouter);
 app.use('/api/auth', authRouter);
+app.use('/api/attributes', attributesRouter);
+app.use('/api/attribute-categories', attributeCategoriesRouter);
 
 const clientDistPath = path.resolve(process.cwd(), '../client/dist');
 app.use(express.static(clientDistPath));
