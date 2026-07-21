@@ -5,6 +5,7 @@ import { toPublicUser } from "../lib/publicUser.js";
 import { updateWithVersion, deleteWithVersion } from "../lib/optimisticLock.js";
 import { buildValueData } from "../lib/attributeValues.js";
 import { resolveTagIds } from "../lib/tags.js";
+import { candidateHasPositionAccess } from "../lib/positionAccess.js";
 
 const router = express.Router();
 
@@ -80,16 +81,19 @@ router.get("/:candidateId", requireAuth, requireSelfOrAdmin("candidateId"), asyn
         }),
         prisma.resume.findMany({
             where: { candidateId },
-            include: { position: true },
+            include: { position: { include: { accessRules: { include: { attribute: true } } } } },
             orderBy: { updatedAt: "desc" },
         }),
     ]);
+
+    const valuesByAttributeId = new Map(attributeValues.map((v) => [v.attributeId, v]));
+    const visibleResumes = resumes.filter((r) => candidateHasPositionAccess(r.position, valuesByAttributeId));
 
     res.status(200).json({
         user: toPublicUser(user),
         attributeValues,
         projects,
-        resumes,
+        resumes: visibleResumes,
     });
 });
 

@@ -12,6 +12,7 @@ import PositionDetailPage from './pages/PositionDetailPage.jsx'
 import SearchResultsPage from './pages/SearchResultsPage.jsx'
 import AttributesPage from './pages/AttributesPage.jsx'
 import AdminPage from './pages/AdminPage.jsx'
+import ResumePage from './pages/ResumePage.jsx'
 
 const App = () => (
     <BrowserRouter>
@@ -26,6 +27,14 @@ const App = () => (
                             element={(
                                 <ProtectedRoute>
                                     <PositionDetailPage />
+                                </ProtectedRoute>
+                            )}
+                        />
+                        <Route
+                            path="/resumes/:id"
+                            element={(
+                                <ProtectedRoute>
+                                    <ResumePage />
                                 </ProtectedRoute>
                             )}
                         />

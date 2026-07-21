@@ -4,6 +4,7 @@ import { Button, Card } from 'react-bootstrap'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../context/auth-context.js'
 import { getPosition, updatePosition } from '../api/positions.js'
+import { createResume } from '../api/resumes.js'
 import { ConflictError } from '../api/http.js'
 import PositionFormModal from '../components/positions/PositionFormModal.jsx'
 import PositionAttributesSection from '../components/positions/PositionAttributesSection.jsx'
@@ -24,6 +25,7 @@ const PositionDetailPage = () => {
     const [banner, setBanner] = useState(null)
     const [showEdit, setShowEdit] = useState(false)
     const [editError, setEditError] = useState(null)
+    const [creatingResume, setCreatingResume] = useState(false)
 
     const load = () => {
         setLoading(true)
@@ -59,6 +61,18 @@ const PositionDetailPage = () => {
         } catch (err) {
             if (!(err instanceof ConflictError)) setEditError(err.message)
             else setShowEdit(false)
+        }
+    }
+
+    const handleCreateResume = async () => {
+        setCreatingResume(true)
+        try {
+            const resume = await createResume(position.id)
+            navigate(`/resumes/${resume.id}`)
+        } catch (err) {
+            setBanner(err.message)
+        } finally {
+            setCreatingResume(false)
         }
     }
 
@@ -102,6 +116,20 @@ const PositionDetailPage = () => {
                     </div>
                 </Card.Body>
             </Card>
+
+            {!canManage && (
+                <div className="d-flex gap-2 mb-4">
+                    {position.myResume ? (
+                        <Button variant="primary" onClick={() => navigate(`/resumes/${position.myResume.id}`)}>
+                            {t('positions.resumes.open')}
+                        </Button>
+                    ) : (
+                        <Button variant="primary" disabled={creatingResume} onClick={handleCreateResume}>
+                            {t('positions.resumes.create')}
+                        </Button>
+                    )}
+                </div>
+            )}
 
             <h5>{t('positions.attributesSection.title')}</h5>
             <PositionAttributesSection

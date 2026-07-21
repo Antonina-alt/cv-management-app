@@ -1,8 +1,7 @@
 import { Table } from 'react-bootstrap'
+import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 
-// Stub: resumes are generated in task 08. This just gives the future feature somewhere to
-// render — the data already flows through the profile bundle since the Resume model exists.
 const ResumesSection = ({ resumes }) => {
     const { t } = useTranslation()
 
@@ -21,7 +20,7 @@ const ResumesSection = ({ resumes }) => {
             <tbody>
                 {resumes.map((resume) => (
                     <tr key={resume.id}>
-                        <td>{resume.position?.title}</td>
+                        <td><Link to={`/resumes/${resume.id}`}>{resume.position?.title}</Link></td>
                         <td>{resume.status}</td>
                     </tr>
                 ))}

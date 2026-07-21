@@ -123,7 +123,9 @@
             "title": "Resumes",
             "empty": "No resumes created for this position yet.",
             "candidate": "Candidate",
-            "status": "Status"
+            "status": "Status",
+            "create": "Create resume",
+            "open": "Open resume"
         }
     },
     "search": {
@@ -263,6 +265,27 @@
             "empty": "No resumes yet. They will appear here once you're granted access to a position.",
             "position": "Position",
             "status": "Status"
+        }
+    },
+    "resume": {
+        "loading": "Loading...",
+        "conflict": "This resume was changed elsewhere. It has been refreshed.",
+        "publish": "Publish",
+        "status": {
+            "DRAFT": "Draft",
+            "PUBLISHED": "Published"
+        },
+        "identity": {
+            "title": "Candidate",
+            "noPhoto": "No photo",
+            "conflict": "The profile was changed elsewhere. It has been refreshed."
+        },
+        "attributes": {
+            "uncategorized": "Other"
+        },
+        "projects": {
+            "title": "Projects",
+            "empty": "No matching projects."
         }
     }
 }

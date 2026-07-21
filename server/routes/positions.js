@@ -4,6 +4,7 @@ import { requireAuth, requireRole } from "../middleware/auth.js";
 import { deleteWithVersion } from "../lib/optimisticLock.js";
 import { resolveTagIds } from "../lib/tags.js";
 import { buildAccessRuleData, candidateHasPositionAccess } from "../lib/positionAccess.js";
+import { filterVisibleResumesByCandidateValues } from "../lib/resumeContent.js";
 
 const router = express.Router();
 
@@ -26,6 +27,18 @@ const includeWithResumes = {
 const candidateAccessMap = async (candidateId) => {
     const values = await prisma.candidateAttributeValue.findMany({ where: { candidateId } });
     return new Map(values.map((v) => [v.attributeId, v]));
+};
+
+// Groups a flat list of CandidateAttributeValue rows (already fetched with a single `in` query)
+// into Map<candidateId, Map<attributeId, value>>, for filtering resumes across many candidates
+// without a query per candidate.
+const groupValuesByCandidateId = (values) => {
+    const map = new Map();
+    for (const v of values) {
+        if (!map.has(v.candidateId)) map.set(v.candidateId, new Map());
+        map.get(v.candidateId).set(v.attributeId, v);
+    }
+    return map;
 };
 
 // Validates {attributeId, operator, ...valueFields}[] against the attribute library and
@@ -116,9 +129,21 @@ router.get("/:id", requireAuth, async (req, res) => {
         if (!candidateHasPositionAccess(position, valuesByAttributeId)) {
             return res.status(403).json({ message: "Forbidden" });
         }
+
+        const myResume = await prisma.resume.findUnique({
+            where: { candidateId_positionId: { candidateId: req.user.id, positionId: id } },
+        });
+        return res.status(200).json({ ...position, myResume });
     }
 
-    res.status(200).json(position);
+    const candidateIds = [...new Set(position.resumes.map((r) => r.candidateId))];
+    const candidateValues = candidateIds.length
+        ? await prisma.candidateAttributeValue.findMany({ where: { candidateId: { in: candidateIds } } })
+        : [];
+    const valuesByCandidateId = groupValuesByCandidateId(candidateValues);
+    const visibleResumes = filterVisibleResumesByCandidateValues(position, position.resumes, valuesByCandidateId);
+
+    res.status(200).json({ ...position, resumes: visibleResumes });
 });
 
 router.post("/", requireAuth, requireRole("RECRUITER", "ADMIN"), async (req, res) => {
