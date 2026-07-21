@@ -13,7 +13,7 @@ DataTable.use(DT)
 
 // Shared list used both as the manage-mode table (task 04, with a toolbar above it)
 // and, later, as the attribute picker inside other forms (tasks 06/07).
-const AttributeList = ({ selectedIds = [], onToggleRow, onToggleAll, refreshToken }) => {
+const AttributeList = ({ selectedIds = [], onToggleRow, onToggleAll, refreshToken, excludeIds, excludeSystem }) => {
     const { t } = useTranslation()
     const [categories, setCategories] = useState([])
     const [categoryId, setCategoryId] = useState('')
@@ -26,10 +26,16 @@ const AttributeList = ({ selectedIds = [], onToggleRow, onToggleAll, refreshToke
     const onToggleRowRef = useRef(onToggleRow)
     const onToggleAllRef = useRef(onToggleAll)
     const attributesRef = useRef(attributes)
+
+    const visibleAttributes = useMemo(
+        () => attributes.filter((a) => (!excludeSystem || !a.systemKey) && (!excludeIds || !excludeIds.includes(a.id))),
+        [attributes, excludeSystem, excludeIds],
+    )
+
     useEffect(() => {
         onToggleRowRef.current = onToggleRow
         onToggleAllRef.current = onToggleAll
-        attributesRef.current = attributes
+        attributesRef.current = visibleAttributes
     })
 
     // Re-read on every refreshToken bump so a fresh pick is reflected immediately.
@@ -58,9 +64,9 @@ const AttributeList = ({ selectedIds = [], onToggleRow, onToggleAll, refreshToke
 
     const recentAttributes = useMemo(
         () => recentIds
-            .map((id) => attributes.find((a) => a.id === id))
+            .map((id) => visibleAttributes.find((a) => a.id === id))
             .filter(Boolean),
-        [recentIds, attributes],
+        [recentIds, visibleAttributes],
     )
 
     const columns = useMemo(() => [
@@ -133,11 +139,11 @@ const AttributeList = ({ selectedIds = [], onToggleRow, onToggleAll, refreshToke
 
         const headerCheckbox = headerCheckboxRef.current
         if (headerCheckbox) {
-            const selectedCount = attributes.filter((a) => selectedIds.includes(a.id)).length
-            headerCheckbox.checked = attributes.length > 0 && selectedCount === attributes.length
-            headerCheckbox.indeterminate = selectedCount > 0 && selectedCount < attributes.length
+            const selectedCount = visibleAttributes.filter((a) => selectedIds.includes(a.id)).length
+            headerCheckbox.checked = visibleAttributes.length > 0 && selectedCount === visibleAttributes.length
+            headerCheckbox.indeterminate = selectedCount > 0 && selectedCount < visibleAttributes.length
         }
-    }, [selectedIds, attributes])
+    }, [selectedIds, visibleAttributes])
 
     return (
         <div>
@@ -186,7 +192,7 @@ const AttributeList = ({ selectedIds = [], onToggleRow, onToggleAll, refreshToke
 
             <DataTable
                 ref={dtRef}
-                data={loading ? [] : attributes}
+                data={loading ? [] : visibleAttributes}
                 columns={columns}
                 slots={slots}
                 options={options}

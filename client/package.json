@@ -20,9 +20,11 @@
     "i18next": "^26.3.6",
     "react": "^19.2.7",
     "react-bootstrap": "^2.10.10",
+    "react-bootstrap-typeahead": "^6.4.1",
     "react-dom": "^19.2.7",
     "react-dropzone": "^19.1.1",
     "react-i18next": "^17.0.10",
+    "react-markdown": "^10.1.0",
     "react-router-dom": "^7.18.1"
   },
   "devDependencies": {

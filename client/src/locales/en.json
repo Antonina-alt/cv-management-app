@@ -100,6 +100,13 @@
     "profile": {
         "title": "Profile",
         "roles": "Roles",
+        "conflict": "This was changed elsewhere. The data has been refreshed.",
+        "tabs": {
+            "about": "About me",
+            "info": "Information",
+            "projects": "Projects",
+            "resumes": "Resumes"
+        },
         "image": {
             "dropHint": "Drag & drop an image here, or click to choose one",
             "uploading": "Uploading...",
@@ -108,6 +115,51 @@
             "invalid": "Image must be PNG, JPEG, WebP or GIF, up to 5MB.",
             "uploadFailed": "Upload failed. Please try again.",
             "conflict": "Your profile was changed elsewhere. It has been refreshed."
+        },
+        "about": {
+            "firstName": "First name",
+            "lastName": "Last name",
+            "location": "Location"
+        },
+        "markdown": {
+            "edit": "Edit",
+            "preview": "Preview"
+        },
+        "info": {
+            "add": "Add attribute",
+            "remove": "Remove selected",
+            "empty": "No attributes added yet. Use \"Add attribute\" to pick from the library.",
+            "attribute": "Attribute",
+            "category": "Category",
+            "value": "Value",
+            "selectPlaceholder": "Choose...",
+            "pickerTitle": "Add attributes",
+            "cancel": "Cancel"
+        },
+        "projects": {
+            "create": "Create",
+            "edit": "Edit",
+            "delete": "Delete",
+            "empty": "No projects yet.",
+            "titleColumn": "Title",
+            "titleField": "Title",
+            "period": "Period",
+            "description": "Description",
+            "tags": "Tags",
+            "tagsPlaceholder": "Add a tag...",
+            "createTitle": "Create project",
+            "editTitle": "Edit project",
+            "startDate": "Start date",
+            "endDate": "End date",
+            "cancel": "Cancel",
+            "save": "Save",
+            "deleteConfirmTitle": "Delete project",
+            "deleteConfirmBody": "Delete \"{{title}}\"? This cannot be undone."
+        },
+        "resumes": {
+            "empty": "No resumes yet. They will appear here once you're granted access to a position.",
+            "position": "Position",
+            "status": "Status"
         }
     }
 }

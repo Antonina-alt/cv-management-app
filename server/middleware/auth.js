@@ -25,6 +25,7 @@ export const requireAuth = async (req, res, next) => {
             email: user.email,
             firstName: user.firstName,
             lastName: user.lastName,
+            location: user.location,
             imageUrl: user.imageUrl,
             roles: user.roles.map((r) => r.role),
             theme: user.theme,
@@ -44,6 +45,18 @@ export const requireRole = (...roles) => (req, res, next) => {
     }
 
     if (req.user.roles.includes("ADMIN") || req.user.roles.some((r) => roles.includes(r))) {
+        return next();
+    }
+
+    return res.status(403).json({ message: "Forbidden" });
+};
+
+export const requireSelfOrAdmin = (paramName = "candidateId") => (req, res, next) => {
+    if (!req.user) {
+        return res.status(401).json({ message: "Not authenticated" });
+    }
+
+    if (req.user.id === req.params[paramName] || req.user.roles.includes("ADMIN")) {
         return next();
     }
 

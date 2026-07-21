@@ -40,9 +40,16 @@ describe('App', () => {
             language: 'EN',
             version: 1,
         }
-        vi.stubGlobal('fetch', vi.fn(() =>
-            Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(user) })
-        ))
+        vi.stubGlobal('fetch', vi.fn((url) => {
+            if (String(url).startsWith('/api/profile/')) {
+                return Promise.resolve({
+                    ok: true,
+                    status: 200,
+                    json: () => Promise.resolve({ user, attributeValues: [], projects: [], resumes: [] }),
+                })
+            }
+            return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(user) })
+        }))
         window.history.pushState({}, '', '/profile')
 
         render(<App />)
