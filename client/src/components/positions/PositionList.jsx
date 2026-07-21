@@ -1,0 +1,175 @@
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { Form } from 'react-bootstrap'
+import { useTranslation } from 'react-i18next'
+import DataTable from 'datatables.net-react'
+import DT from 'datatables.net-bs5'
+import 'datatables.net-bs5/css/dataTables.bootstrap5.css'
+import { listPositions } from '../../api/positions.js'
+
+// eslint-disable-next-line react-hooks/rules-of-hooks -- DataTables static registration, not a React hook
+DataTable.use(DT)
+
+const LEVELS = ['JUNIOR', 'MIDDLE', 'SENIOR', 'LEAD', 'C_LEVEL']
+
+// Positions table shared by the manage-mode toolbar (recruiter/admin) and the read-only
+// candidate view. Selection (checkbox rows, no per-row buttons) mirrors AttributeList.
+const PositionList = ({ selectedIds = [], onToggleRow, onToggleAll, refreshToken, onRowClick }) => {
+    const { t } = useTranslation()
+    const [company, setCompany] = useState('')
+    const [level, setLevel] = useState('')
+    const [positions, setPositions] = useState([])
+    const [loading, setLoading] = useState(true)
+    const [error, setError] = useState(null)
+    const dtRef = useRef(null)
+    const headerCheckboxRef = useRef(null)
+    const onToggleRowRef = useRef(onToggleRow)
+    const onToggleAllRef = useRef(onToggleAll)
+    const positionsRef = useRef(positions)
+
+    useEffect(() => {
+        onToggleRowRef.current = onToggleRow
+        onToggleAllRef.current = onToggleAll
+        positionsRef.current = positions
+    })
+
+    useEffect(() => {
+        let cancelled = false
+
+        const handle = setTimeout(() => {
+            if (cancelled) return
+            setLoading(true)
+            setError(null)
+            listPositions({ company: company || undefined, level: level || undefined })
+                .then((data) => { if (!cancelled) setPositions(data) })
+                .catch((err) => { if (!cancelled) setError(err.message) })
+                .finally(() => { if (!cancelled) setLoading(false) })
+        }, 200)
+
+        return () => { cancelled = true; clearTimeout(handle) }
+    }, [company, level, refreshToken])
+
+    const columns = useMemo(() => [
+        ...(onToggleRow ? [{ data: null, title: '', orderable: false, className: 'dt-checkbox-column', width: '1%' }] : []),
+        { data: 'title', title: t('positions.table.title') },
+        { data: 'company', title: t('positions.table.company') },
+        { data: 'level', title: t('positions.table.level') },
+        { data: 'isPublic', title: t('positions.table.access') },
+        { data: (row) => row.attributes?.length ?? 0, title: t('positions.table.attributes') },
+        { data: (row) => row._count?.resumes ?? 0, title: t('positions.table.resumes') },
+    ], [t, onToggleRow])
+
+    const offset = onToggleRow ? 1 : 0
+
+    const slots = useMemo(() => ({
+        [2 + offset]: (data, row) => (row.level ? t(`positions.levels.${row.level}`) : ''),
+        [3 + offset]: (data, row) => (
+            <span className={`badge ${row.isPublic ? 'text-bg-success' : 'text-bg-secondary'}`}>
+                {t(row.isPublic ? 'positions.public' : 'positions.restricted')}
+            </span>
+        ),
+    }), [t, offset])
+
+    const options = useMemo(() => ({
+        searching: false,
+        autoWidth: false,
+        language: { emptyTable: t('positions.empty') },
+        createdRow: (row, data) => {
+            row.style.cursor = onToggleRowRef.current || onRowClick ? 'pointer' : ''
+            row.onclick = () => {
+                if (onToggleRowRef.current) onToggleRowRef.current(data)
+                else onRowClick?.(data)
+            }
+
+            if (!onToggleRowRef.current) return
+
+            const checkboxCell = row.cells[0]
+            checkboxCell.style.width = '1px'
+            checkboxCell.style.whiteSpace = 'nowrap'
+            const checkbox = document.createElement('input')
+            checkbox.type = 'checkbox'
+            checkbox.className = 'form-check-input'
+            checkbox.setAttribute('aria-label', data.title)
+            checkbox.onclick = (e) => {
+                e.stopPropagation()
+                onToggleRowRef.current?.(data)
+            }
+            checkboxCell.replaceChildren(checkbox)
+        },
+        initComplete: function initComplete() {
+            if (!onToggleAllRef.current) return
+            const headerCell = this.api().table().header().querySelector('th')
+            headerCell.style.width = '1px'
+            headerCell.style.whiteSpace = 'nowrap'
+            const checkbox = document.createElement('input')
+            checkbox.type = 'checkbox'
+            checkbox.className = 'form-check-input'
+            checkbox.setAttribute('aria-label', t('positions.selectAll'))
+            checkbox.onclick = (e) => {
+                e.stopPropagation()
+                onToggleAllRef.current?.(positionsRef.current, e.target.checked)
+            }
+            headerCell.replaceChildren(checkbox)
+            headerCheckboxRef.current = checkbox
+        },
+    }), [t])
+
+    useEffect(() => {
+        const api = dtRef.current?.dt()
+        if (!api || !onToggleRow) return
+        api.rows().every(function syncSelected() {
+            const node = this.node()
+            if (!node) return
+            const isSelected = selectedIds.includes(this.data().id)
+            node.classList.toggle('table-active', isSelected)
+            const checkbox = node.querySelector('input[type="checkbox"]')
+            if (checkbox) checkbox.checked = isSelected
+        })
+
+        const headerCheckbox = headerCheckboxRef.current
+        if (headerCheckbox) {
+            const selectedCount = positions.filter((p) => selectedIds.includes(p.id)).length
+            headerCheckbox.checked = positions.length > 0 && selectedCount === positions.length
+            headerCheckbox.indeterminate = selectedCount > 0 && selectedCount < positions.length
+        }
+    }, [selectedIds, positions, onToggleRow])
+
+    return (
+        <div>
+            <div className="d-flex flex-wrap gap-2 mb-3">
+                <Form.Control
+                    type="search"
+                    style={{ maxWidth: 220 }}
+                    placeholder={t('positions.companyFilter')}
+                    value={company}
+                    onChange={(e) => setCompany(e.target.value)}
+                    aria-label={t('positions.companyFilter')}
+                />
+                <Form.Select
+                    style={{ maxWidth: 200 }}
+                    value={level}
+                    onChange={(e) => setLevel(e.target.value)}
+                    aria-label={t('positions.levelFilter')}
+                >
+                    <option value="">{t('positions.allLevels')}</option>
+                    {LEVELS.map((lvl) => (
+                        <option key={lvl} value={lvl}>{t(`positions.levels.${lvl}`)}</option>
+                    ))}
+                </Form.Select>
+            </div>
+
+            {error && <div className="alert alert-danger">{error}</div>}
+            {loading && <div className="text-muted mb-2">{t('positions.loading')}</div>}
+
+            <DataTable
+                ref={dtRef}
+                data={loading ? [] : positions}
+                columns={columns}
+                slots={slots}
+                options={options}
+                className="table table-hover"
+            />
+        </div>
+    )
+}
+
+export default PositionList

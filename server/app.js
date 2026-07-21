@@ -9,6 +9,7 @@ import attributeCategoriesRouter from "./routes/attributeCategories.js";
 import imagesRouter from "./routes/images.js";
 import profileRouter from "./routes/profile.js";
 import tagsRouter from "./routes/tags.js";
+import positionsRouter from "./routes/positions.js";
 
 dotenv.config();
 
@@ -28,6 +29,7 @@ app.use('/api/attribute-categories', attributeCategoriesRouter);
 app.use('/api/images', imagesRouter);
 app.use('/api/profile', profileRouter);
 app.use('/api/tags', tagsRouter);
+app.use('/api/positions', positionsRouter);
 
 const clientDistPath = path.resolve(process.cwd(), '../client/dist');
 app.use(express.static(clientDistPath));

@@ -21,7 +21,110 @@
     },
     "positions": {
         "title": "Positions",
-        "description": "The list of positions will appear here."
+        "description": "Reusable resume templates shared by all recruiters.",
+        "loading": "Loading...",
+        "empty": "No positions found.",
+        "selectAll": "Select all",
+        "companyFilter": "Filter by company...",
+        "levelFilter": "Level",
+        "allLevels": "All levels",
+        "public": "Public",
+        "restricted": "Restricted",
+        "conflict": "This position was changed by someone else. It has been refreshed.",
+        "table": {
+            "title": "Title",
+            "company": "Company",
+            "level": "Level",
+            "access": "Access",
+            "attributes": "Attributes",
+            "resumes": "Resumes"
+        },
+        "levels": {
+            "JUNIOR": "Junior",
+            "MIDDLE": "Middle",
+            "SENIOR": "Senior",
+            "LEAD": "Lead",
+            "C_LEVEL": "C-level"
+        },
+        "toolbar": {
+            "create": "Create",
+            "open": "Open",
+            "duplicate": "Duplicate",
+            "delete": "Delete",
+            "edit": "Edit"
+        },
+        "form": {
+            "createTitle": "Create position",
+            "editTitle": "Edit position",
+            "title": "Title",
+            "description": "Description",
+            "company": "Company",
+            "level": "Level",
+            "maxProjects": "Max projects in resume",
+            "isPublic": "Public (visible to all authenticated users)",
+            "cancel": "Cancel",
+            "save": "Save"
+        },
+        "deleteConfirm": {
+            "title": "Delete position(s)",
+            "body": "Delete \"{{titles}}\"? This cannot be undone."
+        },
+        "attributesSection": {
+            "title": "Attributes",
+            "add": "Add",
+            "remove": "Remove selected",
+            "empty": "No attributes added yet.",
+            "pickerTitle": "Add attributes"
+        },
+        "projectFilter": {
+            "title": "Project filter",
+            "noTags": "No project tags — all projects are eligible.",
+            "maxProjects": "Up to {{count}} project(s) included in the generated resume.",
+            "maxProjectsLabel": "Max projects",
+            "tags": "Project tags",
+            "edit": "Edit",
+            "editTitle": "Edit project filter"
+        },
+        "accessRules": {
+            "title": "Access rules",
+            "empty": "No access rules yet. A restricted position is hidden from candidates until rules are added.",
+            "true": "is true",
+            "false": "is false",
+            "toolbar": {
+                "add": "Add rule",
+                "edit": "Edit",
+                "delete": "Delete"
+            },
+            "form": {
+                "createTitle": "Add access rule",
+                "editTitle": "Edit access rule",
+                "attribute": "Attribute",
+                "selectAttribute": "Choose an attribute...",
+                "operator": "Operator",
+                "selectOperator": "Choose an operator...",
+                "value": "Value"
+            },
+            "operators": {
+                "EQUALS": "=",
+                "NOT_EQUALS": "≠",
+                "GREATER_THAN": ">",
+                "GREATER_THAN_OR_EQUALS": "≥",
+                "LESS_THAN": "<",
+                "LESS_THAN_OR_EQUALS": "≤",
+                "IS_TRUE": "is true",
+                "IS_FALSE": "is false"
+            },
+            "deleteConfirm": {
+                "title": "Delete access rule",
+                "body": "Delete this access rule? This cannot be undone."
+            }
+        },
+        "resumes": {
+            "title": "Resumes",
+            "empty": "No resumes created for this position yet.",
+            "candidate": "Candidate",
+            "status": "Status"
+        }
     },
     "search": {
         "title": "Search results",

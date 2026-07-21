@@ -8,6 +8,7 @@ import RegisterPage from './pages/RegisterPage.jsx'
 import ProfilePage from './pages/ProfilePage.jsx'
 import HomePage from './pages/HomePage.jsx'
 import PositionsPage from './pages/PositionsPage.jsx'
+import PositionDetailPage from './pages/PositionDetailPage.jsx'
 import SearchResultsPage from './pages/SearchResultsPage.jsx'
 import AttributesPage from './pages/AttributesPage.jsx'
 import AdminPage from './pages/AdminPage.jsx'
@@ -20,6 +21,14 @@ const App = () => (
                     <Route element={<AppLayout />}>
                         <Route path="/" element={<HomePage />} />
                         <Route path="/positions" element={<PositionsPage />} />
+                        <Route
+                            path="/positions/:id"
+                            element={(
+                                <ProtectedRoute>
+                                    <PositionDetailPage />
+                                </ProtectedRoute>
+                            )}
+                        />
                         <Route path="/search" element={<SearchResultsPage />} />
                         <Route path="/login" element={<LoginPage />} />
                         <Route path="/register" element={<RegisterPage />} />
