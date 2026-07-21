@@ -70,7 +70,7 @@ const AttributeList = ({ selectedIds = [], onToggleRow, onToggleAll, refreshToke
     )
 
     const columns = useMemo(() => [
-        { data: null, title: '', orderable: false, className: 'dt-checkbox-column' },
+        { data: null, title: '', orderable: false, className: 'dt-checkbox-column', width: '1%' },
         { data: 'name', title: t('attributes.table.name') },
         { data: (row) => row.category?.name ?? '', title: t('attributes.table.category') },
         { data: 'type', title: t('attributes.table.type') },
@@ -94,12 +94,15 @@ const AttributeList = ({ selectedIds = [], onToggleRow, onToggleAll, refreshToke
 
     const options = useMemo(() => ({
         searching: false,
+        autoWidth: false,
         language: { emptyTable: t('attributes.empty') },
         createdRow: (row, data) => {
             row.style.cursor = onToggleRowRef.current ? 'pointer' : ''
             row.onclick = () => onToggleRowRef.current?.(data)
 
             const checkboxCell = row.cells[0]
+            checkboxCell.style.width = '1px'
+            checkboxCell.style.whiteSpace = 'nowrap'
             const checkbox = document.createElement('input')
             checkbox.type = 'checkbox'
             checkbox.className = 'form-check-input'
@@ -112,6 +115,8 @@ const AttributeList = ({ selectedIds = [], onToggleRow, onToggleAll, refreshToke
         },
         initComplete: function initComplete() {
             const headerCell = this.api().table().header().querySelector('th')
+            headerCell.style.width = '1px'
+            headerCell.style.whiteSpace = 'nowrap'
             const checkbox = document.createElement('input')
             checkbox.type = 'checkbox'
             checkbox.className = 'form-check-input'

@@ -11,7 +11,12 @@ const EXTENSION_BY_MIME_TYPE = {
     "image/gif": "gif",
 };
 
-export const ensureContainer = () => containerClient.createIfNotExists();
+export const ensureContainer = async () => {
+    await containerClient.createIfNotExists({ access: "blob" });
+    // createIfNotExists() only sets access level at creation time, so containers created by an
+    // earlier (private) run of this app need it applied explicitly too.
+    await containerClient.setAccessPolicy("blob");
+};
 
 export const uploadImage = async (buffer, mimetype) => {
     const extension = EXTENSION_BY_MIME_TYPE[mimetype] ?? "bin";

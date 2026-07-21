@@ -39,25 +39,31 @@ const ImageUploader = ({ value, onUpload, onRemove, disabled }) => {
         disabled: disabled || uploading,
     })
 
+    // Once an image is set, drop the dropzone chrome (border/padding/hint text) and show just
+    // the image — it's still clickable/droppable to replace, only the framing goes away.
+    const showDropzoneChrome = !value || uploading
+
     return (
-        <div>
+        <div className="d-flex flex-column align-items-center">
             <div
                 {...getRootProps()}
-                className={`border rounded p-4 text-center ${isDragActive ? 'border-primary bg-body-tertiary' : 'border-secondary-subtle'}`}
-                style={{ cursor: disabled || uploading ? 'default' : 'pointer' }}
+                className={showDropzoneChrome ? `border rounded p-4 text-center ${isDragActive ? 'border-primary bg-body-tertiary' : 'border-secondary-subtle'}` : ''}
+                style={{ cursor: disabled || uploading ? 'default' : 'pointer', display: showDropzoneChrome ? 'block' : 'inline-block' }}
             >
                 <input {...getInputProps()} />
                 {value ? (
                     <img
                         src={value}
                         alt={t('profile.image.preview')}
-                        className="img-thumbnail mb-2"
+                        className={showDropzoneChrome ? 'img-thumbnail mb-2' : 'img-thumbnail'}
                         style={{ maxWidth: 160, maxHeight: 160 }}
                     />
                 ) : null}
-                <p className="mb-0 text-muted">
-                    {uploading ? t('profile.image.uploading') : t('profile.image.dropHint')}
-                </p>
+                {showDropzoneChrome && (
+                    <p className="mb-0 text-muted">
+                        {uploading ? t('profile.image.uploading') : t('profile.image.dropHint')}
+                    </p>
+                )}
             </div>
 
             {error && <div className="alert alert-danger mt-2 mb-0">{error}</div>}

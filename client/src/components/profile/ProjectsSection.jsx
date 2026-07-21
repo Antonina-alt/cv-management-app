@@ -1,9 +1,15 @@
-import { useState } from 'react'
-import { Button, Modal, Table } from 'react-bootstrap'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { Button, Modal } from 'react-bootstrap'
 import { useTranslation } from 'react-i18next'
+import DataTable from 'datatables.net-react'
+import DT from 'datatables.net-bs5'
+import 'datatables.net-bs5/css/dataTables.bootstrap5.css'
 import ProjectFormModal from './ProjectFormModal.jsx'
 import { createProject, deleteProject, updateProject } from '../../api/profile.js'
 import { ConflictError } from '../../api/http.js'
+
+// eslint-disable-next-line react-hooks/rules-of-hooks -- DataTables static registration, not a React hook
+DataTable.use(DT)
 
 const formatDate = (value) => (value ? new Date(value).toLocaleDateString() : '')
 
@@ -16,6 +22,11 @@ const ProjectsSection = ({ candidateId, initialProjects, onConflict }) => {
     const [modal, setModal] = useState(null)
     const [formError, setFormError] = useState(null)
     const [banner, setBanner] = useState(null)
+    const dtRef = useRef(null)
+    const headerCheckboxRef = useRef(null)
+    const onToggleRowRef = useRef(null)
+    const onToggleAllRef = useRef(null)
+    const projectsRef = useRef(projects)
 
     const selected = projects.filter((p) => selectedIds.includes(p.id))
     const singleSelected = selected.length === 1 ? selected[0] : null
@@ -23,6 +34,23 @@ const ProjectsSection = ({ candidateId, initialProjects, onConflict }) => {
     const toggleRow = (id) => {
         setSelectedIds((prev) => (prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]))
     }
+
+    const toggleAll = (rows, selectAll) => {
+        setSelectedIds((prev) => {
+            if (selectAll) {
+                const existing = new Set(prev)
+                return [...prev, ...rows.map((p) => p.id).filter((id) => !existing.has(id))]
+            }
+            const removed = new Set(rows.map((p) => p.id))
+            return prev.filter((id) => !removed.has(id))
+        })
+    }
+
+    useEffect(() => {
+        onToggleRowRef.current = (row) => toggleRow(row.id)
+        onToggleAllRef.current = toggleAll
+        projectsRef.current = projects
+    })
 
     const closeModal = () => {
         setModal(null)
@@ -74,6 +102,80 @@ const ProjectsSection = ({ candidateId, initialProjects, onConflict }) => {
         closeModal()
     }
 
+    const columns = useMemo(() => [
+        { data: null, title: '', orderable: false, className: 'dt-checkbox-column', width: '1%' },
+        { data: 'title', title: t('profile.projects.titleColumn') },
+        { data: null, title: t('profile.projects.period'), orderable: false },
+        { data: 'description', title: t('profile.projects.description') },
+        { data: null, title: t('profile.projects.tags'), orderable: false },
+    ], [t])
+
+    const slots = useMemo(() => ({
+        2: (data, row) => <>{formatDate(row.startDate)} – {formatDate(row.endDate)}</>,
+        3: (data, row) => (
+            <span className="text-truncate d-inline-block" style={{ maxWidth: 320 }}>{row.description}</span>
+        ),
+        4: (data, row) => <>{row.tags.map((tag) => tag.tag.name).join(', ')}</>,
+    }), [])
+
+    const options = useMemo(() => ({
+        searching: false,
+        autoWidth: false,
+        language: { emptyTable: t('profile.projects.empty') },
+        createdRow: (row, data) => {
+            row.style.cursor = 'pointer'
+            row.onclick = () => onToggleRowRef.current?.(data)
+
+            const checkboxCell = row.cells[0]
+            checkboxCell.style.width = '1px'
+            checkboxCell.style.whiteSpace = 'nowrap'
+            const checkbox = document.createElement('input')
+            checkbox.type = 'checkbox'
+            checkbox.className = 'form-check-input'
+            checkbox.setAttribute('aria-label', data.title)
+            checkbox.onclick = (e) => {
+                e.stopPropagation()
+                onToggleRowRef.current?.(data)
+            }
+            checkboxCell.replaceChildren(checkbox)
+        },
+        initComplete: function initComplete() {
+            const headerCell = this.api().table().header().querySelector('th')
+            headerCell.style.width = '1px'
+            headerCell.style.whiteSpace = 'nowrap'
+            const checkbox = document.createElement('input')
+            checkbox.type = 'checkbox'
+            checkbox.className = 'form-check-input'
+            checkbox.setAttribute('aria-label', t('attributes.selectAll'))
+            checkbox.onclick = (e) => {
+                e.stopPropagation()
+                onToggleAllRef.current?.(projectsRef.current, e.target.checked)
+            }
+            headerCell.replaceChildren(checkbox)
+            headerCheckboxRef.current = checkbox
+        },
+    }), [t])
+
+    useEffect(() => {
+        const api = dtRef.current?.dt()
+        if (!api) return
+        api.rows().every(function syncSelected() {
+            const node = this.node()
+            if (!node) return
+            const isSelected = selectedIds.includes(this.data().id)
+            node.classList.toggle('table-active', isSelected)
+            const checkbox = node.querySelector('input[type="checkbox"]')
+            if (checkbox) checkbox.checked = isSelected
+        })
+
+        const headerCheckbox = headerCheckboxRef.current
+        if (headerCheckbox) {
+            const selectedCount = projects.filter((p) => selectedIds.includes(p.id)).length
+            headerCheckbox.checked = projects.length > 0 && selectedCount === projects.length
+            headerCheckbox.indeterminate = selectedCount > 0 && selectedCount < projects.length
+        }
+    }, [selectedIds, projects])
+
     return (
         <div>
             {banner && (
@@ -95,42 +197,14 @@ const ProjectsSection = ({ candidateId, initialProjects, onConflict }) => {
                 </Button>
             </div>
 
-            {projects.length === 0 ? (
-                <p className="text-muted">{t('profile.projects.empty')}</p>
-            ) : (
-                <Table hover responsive>
-                    <thead>
-                        <tr>
-                            <th style={{ width: 32 }} />
-                            <th>{t('profile.projects.titleColumn')}</th>
-                            <th>{t('profile.projects.period')}</th>
-                            <th>{t('profile.projects.description')}</th>
-                            <th>{t('profile.projects.tags')}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {projects.map((project) => (
-                            <tr key={project.id}>
-                                <td>
-                                    <input
-                                        type="checkbox"
-                                        className="form-check-input"
-                                        checked={selectedIds.includes(project.id)}
-                                        onChange={() => toggleRow(project.id)}
-                                        aria-label={project.title}
-                                    />
-                                </td>
-                                <td>{project.title}</td>
-                                <td>{formatDate(project.startDate)} – {formatDate(project.endDate)}</td>
-                                <td className="text-truncate d-inline-block" style={{ maxWidth: 320 }}>
-                                    {project.description}
-                                </td>
-                                <td>{project.tags.map((t) => t.tag.name).join(', ')}</td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </Table>
-            )}
+            <DataTable
+                ref={dtRef}
+                data={projects}
+                columns={columns}
+                slots={slots}
+                options={options}
+                className="table table-hover"
+            />
 
             {modal === 'create' && (
                 <ProjectFormModal show onClose={closeModal} onSubmit={handleCreate} error={formError} />

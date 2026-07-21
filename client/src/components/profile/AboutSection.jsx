@@ -86,10 +86,10 @@ const AboutSection = ({ autosave, onConflict }) => {
             )}
 
             <div className="row g-4">
-                <div className="col-md-4">
+                <div className="col-md-3">
                     <ImageUploader value={user.imageUrl} onUpload={handleUploadImage} onRemove={handleRemoveImage} />
                 </div>
-                <div className="col-md-8">
+                <div className="col-md-9">
                     <Form.Group className="mb-3">
                         <Form.Label>{t('profile.about.firstName')}</Form.Label>
                         <Form.Control
