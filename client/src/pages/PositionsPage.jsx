@@ -63,9 +63,9 @@ const PositionsPage = () => {
     }
 
     const handleDuplicate = async () => {
-        if (!singleSelected) return
+        if (selected.length === 0) return
         try {
-            await duplicatePosition(singleSelected.id)
+            await Promise.all(selected.map((p) => duplicatePosition(p.id)))
             setBanner(null)
             setSelected([])
             refresh()
@@ -106,7 +106,7 @@ const PositionsPage = () => {
                     <Button variant="outline-primary" disabled={!singleSelected} onClick={handleOpen}>
                         {t('positions.toolbar.open')}
                     </Button>
-                    <Button variant="outline-primary" disabled={!singleSelected} onClick={handleDuplicate}>
+                    <Button variant="outline-primary" disabled={selected.length === 0} onClick={handleDuplicate}>
                         {t('positions.toolbar.duplicate')}
                     </Button>
                     <Button

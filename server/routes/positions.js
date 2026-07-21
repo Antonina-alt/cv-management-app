@@ -1,6 +1,6 @@
 import express from "express";
 import { prisma } from "../lib/prisma.js";
-import { requireAuth, requireRole } from "../middleware/auth.js";
+import { requireAuth, requireRole, optionalAuth } from "../middleware/auth.js";
 import { deleteWithVersion } from "../lib/optimisticLock.js";
 import { resolveTagIds } from "../lib/tags.js";
 import { buildAccessRuleData, candidateHasPositionAccess } from "../lib/positionAccess.js";
@@ -21,7 +21,7 @@ const include = {
 
 const includeWithResumes = {
     ...include,
-    resumes: { include: { candidate: true } },
+    resumes: { include: { candidate: true, _count: { select: { likes: true } } } },
 };
 
 const candidateAccessMap = async (candidateId) => {
@@ -85,7 +85,7 @@ const validatePositionFields = (body) => {
     return null;
 };
 
-router.get("/", requireAuth, async (req, res) => {
+router.get("/", optionalAuth, async (req, res) => {
     const { company, level } = req.query;
 
     const where = {};
@@ -102,6 +102,10 @@ router.get("/", requireAuth, async (req, res) => {
         orderBy: { updatedAt: "desc" },
     });
 
+    if (!req.user) {
+        return res.status(200).json(positions.filter((p) => p.isPublic));
+    }
+
     if (isRecruiterOrAdmin(req.user)) {
         return res.status(200).json(positions);
     }
@@ -111,9 +115,9 @@ router.get("/", requireAuth, async (req, res) => {
     res.status(200).json(accessible);
 });
 
-router.get("/:id", requireAuth, async (req, res) => {
+router.get("/:id", optionalAuth, async (req, res) => {
     const { id } = req.params;
-    const recruiterView = isRecruiterOrAdmin(req.user);
+    const recruiterView = Boolean(req.user) && isRecruiterOrAdmin(req.user);
 
     const position = await prisma.position.findUnique({
         where: { id },
@@ -122,6 +126,13 @@ router.get("/:id", requireAuth, async (req, res) => {
 
     if (!position) {
         return res.status(404).json({ message: "position not found" });
+    }
+
+    if (!req.user) {
+        if (!position.isPublic) {
+            return res.status(403).json({ message: "Forbidden" });
+        }
+        return res.status(200).json(position);
     }
 
     if (!recruiterView) {

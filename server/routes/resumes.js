@@ -1,6 +1,6 @@
 import express from "express";
 import { prisma } from "../lib/prisma.js";
-import { requireAuth } from "../middleware/auth.js";
+import { requireAuth, requireRole } from "../middleware/auth.js";
 import { candidateHasPositionAccess } from "../lib/positionAccess.js";
 import { buildResumeAttributes, buildResumeProjects, isResumeComplete } from "../lib/resumeContent.js";
 import { toPublicUser } from "../lib/publicUser.js";
@@ -39,7 +39,17 @@ const syncMissingAttributeValues = async (candidateId, position, valuesByAttribu
     return true;
 };
 
-const buildDetail = async (resume, position, candidateUser, canEdit) => {
+const loadLikeInfo = async (resumeId, currentUserId) => {
+    const [likeCount, likedByMe] = await Promise.all([
+        prisma.resumeLike.count({ where: { resumeId } }),
+        currentUserId
+            ? prisma.resumeLike.findUnique({ where: { resumeId_recruiterId: { resumeId, recruiterId: currentUserId } } })
+            : null,
+    ]);
+    return { likeCount, likedByMe: Boolean(likedByMe) };
+};
+
+const buildDetail = async (resume, position, candidateUser, canEdit, currentUserId) => {
     const valuesByAttributeId = await loadCandidateValues(resume.candidateId);
     const projects = await prisma.project.findMany({
         where: { candidateId: resume.candidateId },
@@ -49,6 +59,7 @@ const buildDetail = async (resume, position, candidateUser, canEdit) => {
 
     const attributes = buildResumeAttributes(position, valuesByAttributeId);
     const resumeProjects = buildResumeProjects(position, projects);
+    const { likeCount, likedByMe } = await loadLikeInfo(resume.id, currentUserId);
 
     return {
         id: resume.id,
@@ -64,6 +75,8 @@ const buildDetail = async (resume, position, candidateUser, canEdit) => {
         projects: resumeProjects,
         isComplete: isResumeComplete(attributes),
         canEdit,
+        likeCount,
+        likedByMe,
     };
 };
 
@@ -102,7 +115,7 @@ router.post("/", requireAuth, async (req, res) => {
         });
 
         const candidateUser = await findWithRoles(req.user.id);
-        res.status(201).json(await buildDetail(resume, position, candidateUser, true));
+        res.status(201).json(await buildDetail(resume, position, candidateUser, true, req.user.id));
     } catch (err) {
         if (err.code === "P2002") {
             return res.status(409).json({ message: "a resume already exists for this position" });
@@ -144,7 +157,7 @@ router.get("/:id", requireAuth, async (req, res) => {
     }
 
     const candidateUser = await findWithRoles(resume.candidateId);
-    res.status(200).json(await buildDetail(resume, position, candidateUser, owner));
+    res.status(200).json(await buildDetail(resume, position, candidateUser, owner, req.user.id));
 });
 
 router.patch("/:id/publish", requireAuth, async (req, res) => {
@@ -183,7 +196,34 @@ router.patch("/:id/publish", requireAuth, async (req, res) => {
 
     const updated = await prisma.resume.findUnique({ where: { id } });
     const candidateUser = await findWithRoles(resume.candidateId);
-    res.status(200).json(await buildDetail(updated, position, candidateUser, true));
+    res.status(200).json(await buildDetail(updated, position, candidateUser, true, req.user.id));
+});
+
+// Likes: recruiters/admins only, one per resume per recruiter (@@id([resumeId, recruiterId])
+// makes this naturally idempotent — no need to check-then-create).
+router.put("/:id/like", requireAuth, requireRole("RECRUITER", "ADMIN"), async (req, res) => {
+    const { id } = req.params;
+
+    const resume = await prisma.resume.findUnique({ where: { id } });
+    if (!resume || resume.status !== "PUBLISHED") {
+        return res.status(404).json({ message: "resume not found" });
+    }
+
+    await prisma.resumeLike.upsert({
+        where: { resumeId_recruiterId: { resumeId: id, recruiterId: req.user.id } },
+        update: {},
+        create: { resumeId: id, recruiterId: req.user.id },
+    });
+
+    res.status(200).json(await loadLikeInfo(id, req.user.id));
+});
+
+router.delete("/:id/like", requireAuth, requireRole("RECRUITER", "ADMIN"), async (req, res) => {
+    const { id } = req.params;
+
+    await prisma.resumeLike.deleteMany({ where: { resumeId: id, recruiterId: req.user.id } });
+
+    res.status(200).json(await loadLikeInfo(id, req.user.id));
 });
 
 export default router;

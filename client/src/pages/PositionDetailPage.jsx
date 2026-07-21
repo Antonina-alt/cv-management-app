@@ -117,7 +117,7 @@ const PositionDetailPage = () => {
                 </Card.Body>
             </Card>
 
-            {!canManage && (
+            {user && !canManage && (
                 <div className="d-flex gap-2 mb-4">
                     {position.myResume ? (
                         <Button variant="primary" onClick={() => navigate(`/resumes/${position.myResume.id}`)}>

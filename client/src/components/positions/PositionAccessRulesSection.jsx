@@ -64,17 +64,19 @@ const PositionAccessRulesSection = ({ rules, onSave, disabled }) => {
 
     return (
         <div>
-            <div className="d-flex gap-2 mb-3">
-                <Button variant="primary" size="sm" disabled={disabled} onClick={() => setModal('create')}>
-                    {t('positions.accessRules.toolbar.add')}
-                </Button>
-                <Button variant="outline-primary" size="sm" disabled={disabled || !selectedRule} onClick={() => setModal('edit')}>
-                    {t('positions.accessRules.toolbar.edit')}
-                </Button>
-                <Button variant="outline-danger" size="sm" disabled={disabled || !selectedRule} onClick={() => setModal('delete')}>
-                    {t('positions.accessRules.toolbar.delete')}
-                </Button>
-            </div>
+            {!disabled && (
+                <div className="d-flex gap-2 mb-3">
+                    <Button variant="primary" size="sm" onClick={() => setModal('create')}>
+                        {t('positions.accessRules.toolbar.add')}
+                    </Button>
+                    <Button variant="outline-primary" size="sm" disabled={!selectedRule} onClick={() => setModal('edit')}>
+                        {t('positions.accessRules.toolbar.edit')}
+                    </Button>
+                    <Button variant="outline-danger" size="sm" disabled={!selectedRule} onClick={() => setModal('delete')}>
+                        {t('positions.accessRules.toolbar.delete')}
+                    </Button>
+                </div>
+            )}
 
             {rules.length === 0 ? (
                 <p className="text-muted">{t('positions.accessRules.empty')}</p>
@@ -82,7 +84,7 @@ const PositionAccessRulesSection = ({ rules, onSave, disabled }) => {
                 <Table hover responsive>
                     <thead>
                         <tr>
-                            <th />
+                            {!disabled && <th />}
                             <th>{t('positions.accessRules.form.attribute')}</th>
                             <th>{t('positions.accessRules.form.operator')}</th>
                             <th>{t('positions.accessRules.form.value')}</th>
@@ -92,18 +94,20 @@ const PositionAccessRulesSection = ({ rules, onSave, disabled }) => {
                         {rules.map((rule) => (
                             <tr
                                 key={rule.id}
-                                className={selectedId === rule.id ? 'table-active' : ''}
-                                style={{ cursor: 'pointer' }}
-                                onClick={() => setSelectedId(rule.id === selectedId ? null : rule.id)}
+                                className={!disabled && selectedId === rule.id ? 'table-active' : ''}
+                                style={disabled ? undefined : { cursor: 'pointer' }}
+                                onClick={disabled ? undefined : () => setSelectedId(rule.id === selectedId ? null : rule.id)}
                             >
-                                <td onClick={(e) => e.stopPropagation()}>
-                                    <input
-                                        type="checkbox"
-                                        className="form-check-input"
-                                        checked={selectedId === rule.id}
-                                        onChange={() => setSelectedId(rule.id === selectedId ? null : rule.id)}
-                                    />
-                                </td>
+                                {!disabled && (
+                                    <td onClick={(e) => e.stopPropagation()}>
+                                        <input
+                                            type="checkbox"
+                                            className="form-check-input"
+                                            checked={selectedId === rule.id}
+                                            onChange={() => setSelectedId(rule.id === selectedId ? null : rule.id)}
+                                        />
+                                    </td>
+                                )}
                                 <td>{rule.attribute.name}</td>
                                 <td>{t(`positions.accessRules.operators.${rule.operator}`)}</td>
                                 <td>{formatValue(rule, t)}</td>

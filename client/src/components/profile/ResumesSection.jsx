@@ -15,6 +15,7 @@ const ResumesSection = ({ resumes }) => {
                 <tr>
                     <th>{t('profile.resumes.position')}</th>
                     <th>{t('profile.resumes.status')}</th>
+                    <th>{t('profile.resumes.likes')}</th>
                 </tr>
             </thead>
             <tbody>
@@ -22,6 +23,7 @@ const ResumesSection = ({ resumes }) => {
                     <tr key={resume.id}>
                         <td><Link to={`/resumes/${resume.id}`}>{resume.position?.title}</Link></td>
                         <td>{resume.status}</td>
+                        <td>{resume._count?.likes ?? 0}</td>
                     </tr>
                 ))}
             </tbody>

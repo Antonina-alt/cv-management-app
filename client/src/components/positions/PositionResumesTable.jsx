@@ -18,6 +18,7 @@ const PositionResumesTable = ({ resumes }) => {
                 <tr>
                     <th>{t('positions.resumes.candidate')}</th>
                     <th>{t('positions.resumes.status')}</th>
+                    <th>{t('positions.resumes.likes')}</th>
                 </tr>
             </thead>
             <tbody>
@@ -31,6 +32,7 @@ const PositionResumesTable = ({ resumes }) => {
                             )}
                         </td>
                         <td>{resume.status}</td>
+                        <td>{resume._count?.likes ?? 0}</td>
                     </tr>
                 ))}
             </tbody>

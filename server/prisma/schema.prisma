@@ -82,6 +82,10 @@ model User {
     language Language @default(EN)
     theme    Theme    @default(LIGHT)
 
+    // Generated column (firstName + lastName + location), kept in sync by Postgres. Lets resume
+    // search match on candidate identity without a query per candidate. See migration SQL.
+    searchVector Unsupported("tsvector")?
+
     roles           UserRole[]
     projects        Project[]
     attributeValues CandidateAttributeValue[]
@@ -90,6 +94,8 @@ model User {
     resumeLikes     ResumeLike[]
     oauthAccounts   OAuthAccount[]
     credential      Credential?
+
+    @@index([searchVector], type: Gin)
 }
 
 model Credential {
@@ -127,7 +133,11 @@ model Project {
 
     tags ProjectTag[]
 
+    // Generated column (title + description). See migration SQL.
+    searchVector Unsupported("tsvector")?
+
     @@index([candidateId])
+    @@index([searchVector], type: Gin)
 }
 
 model Tag {
@@ -223,9 +233,15 @@ model CandidateAttributeValue {
 
     selectedOption AttributeOption? @relation(fields: [selectedOptionId], references: [id], onDelete: SetNull)
 
+    // Generated column (stringValue only — the free-text attribute types). Lets resume search
+    // match on filled-in attribute content (e.g. "English Level: Fluent") without a query per
+    // candidate. See migration SQL.
+    searchVector Unsupported("tsvector")?
+
     @@unique([candidateId, attributeId])
     @@index([attributeId])
     @@index([selectedOptionId])
+    @@index([searchVector], type: Gin)
 }
 
 model Position {
@@ -240,6 +256,9 @@ model Position {
     createdAt   DateTime       @default(now())
     updatedAt   DateTime       @updatedAt
 
+    // Generated column (title + description + company). See migration SQL.
+    searchVector Unsupported("tsvector")?
+
     resumes           Resume[]
     attributes        PositionAttribute[]
     accessRules       PositionAccessRule[]
@@ -247,6 +266,7 @@ model Position {
     comments          PositionComment[]
 
     @@index([updatedAt(sort: Desc)])
+    @@index([searchVector], type: Gin)
 }
 
 model PositionProjectTag {

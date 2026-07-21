@@ -124,6 +124,7 @@
             "empty": "No resumes created for this position yet.",
             "candidate": "Candidate",
             "status": "Status",
+            "likes": "Likes",
             "create": "Create resume",
             "open": "Open resume"
         }
@@ -132,7 +133,13 @@
         "title": "Search results",
         "resultsFor": "Results for \"{{query}}\"",
         "noQuery": "Enter a search term in the header to see results.",
-        "description": "Full-text search will be implemented in a later task."
+        "loading": "Searching...",
+        "empty": "No results found.",
+        "sections": {
+            "positions": "Positions",
+            "projects": "Projects",
+            "resumes": "Resumes"
+        }
     },
     "attributes": {
         "title": "Attribute Library",
@@ -264,13 +271,16 @@
         "resumes": {
             "empty": "No resumes yet. They will appear here once you're granted access to a position.",
             "position": "Position",
-            "status": "Status"
+            "status": "Status",
+            "likes": "Likes"
         }
     },
     "resume": {
         "loading": "Loading...",
         "conflict": "This resume was changed elsewhere. It has been refreshed.",
         "publish": "Publish",
+        "like": "Like",
+        "unlike": "Unlike",
         "status": {
             "DRAFT": "Draft",
             "PUBLISHED": "Published"

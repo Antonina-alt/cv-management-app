@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { Badge, Button, Card } from 'react-bootstrap'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../context/auth-context.js'
-import { getResume, publishResume } from '../api/resumes.js'
+import { getResume, publishResume, likeResume, unlikeResume } from '../api/resumes.js'
 import { updateAttributeValue } from '../api/profile.js'
 import { useAutosaveQueue } from '../lib/useAutosaveQueue.js'
 import { ConflictError } from '../api/http.js'
@@ -15,7 +15,7 @@ const ResumePage = () => {
     const { t } = useTranslation()
     const { id } = useParams()
     const navigate = useNavigate()
-    const { user } = useAuth()
+    const { user, updateUser } = useAuth()
     const autosave = useAutosaveQueue()
 
     const [resume, setResume] = useState(null)
@@ -24,6 +24,7 @@ const ResumePage = () => {
     const [banner, setBanner] = useState(null)
     const [emptyMap, setEmptyMap] = useState({})
     const [publishing, setPublishing] = useState(false)
+    const [liking, setLiking] = useState(false)
 
     const load = () => {
         setLoading(true)
@@ -39,6 +40,11 @@ const ResumePage = () => {
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
     useEffect(load, [id])
+
+    useEffect(() => () => {
+        autosave.flushNow().catch(() => {})
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
 
     const groupedAttributes = useMemo(() => {
         if (!resume) return []
@@ -96,6 +102,9 @@ const ResumePage = () => {
 
     const handleCandidateChange = (updatedCandidate) => {
         setResume((prev) => (prev ? { ...prev, candidate: updatedCandidate } : prev))
+        if (user?.id === updatedCandidate.id) {
+            updateUser(updatedCandidate)
+        }
     }
 
     const handlePublish = async () => {
@@ -116,11 +125,24 @@ const ResumePage = () => {
         }
     }
 
+    const handleToggleLike = async () => {
+        setLiking(true)
+        try {
+            const result = resume.likedByMe ? await unlikeResume(id) : await likeResume(id)
+            setResume((prev) => (prev ? { ...prev, ...result } : prev))
+        } catch (err) {
+            setBanner(err.message)
+        } finally {
+            setLiking(false)
+        }
+    }
+
     if (loading) return <p className="text-muted">{t('resume.loading')}</p>
     if (error) return <div className="alert alert-danger">{error}</div>
     if (!resume) return null
 
     const isSelf = user?.id === resume.candidateId
+    const canLike = Boolean(user) && !isSelf && (user.roles.includes('RECRUITER') || user.roles.includes('ADMIN'))
 
     return (
         <div>
@@ -149,11 +171,23 @@ const ResumePage = () => {
                                 {t(`resume.status.${resume.status}`)}
                             </Badge>
                         </div>
-                        {resume.canEdit && resume.status === 'DRAFT' && (
-                            <Button variant="primary" disabled={!isComplete || publishing} onClick={handlePublish}>
-                                {t('resume.publish')}
-                            </Button>
-                        )}
+                        <div className="d-flex align-items-center gap-2">
+                            {canLike && (
+                                <Button
+                                    variant={resume.likedByMe ? 'danger' : 'outline-danger'}
+                                    size="sm"
+                                    disabled={liking}
+                                    onClick={handleToggleLike}
+                                >
+                                    {resume.likedByMe ? t('resume.unlike') : t('resume.like')} ({resume.likeCount})
+                                </Button>
+                            )}
+                            {resume.canEdit && resume.status === 'DRAFT' && (
+                                <Button variant="primary" disabled={!isComplete || publishing} onClick={handlePublish}>
+                                    {t('resume.publish')}
+                                </Button>
+                            )}
+                        </div>
                     </div>
                 </Card.Body>
             </Card>

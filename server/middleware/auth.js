@@ -39,6 +39,43 @@ export const requireAuth = async (req, res, next) => {
     }
 };
 
+// Populates req.user when a valid session cookie is present, but never rejects the request —
+// for routes that serve both authenticated and anonymous users (e.g. public positions).
+export const optionalAuth = async (req, res, next) => {
+    const token = req.cookies?.token;
+    if (!token) {
+        return next();
+    }
+
+    try {
+        const payload = jwt.verify(token, process.env.JWT_SECRET);
+
+        const user = await prisma.user.findUnique({
+            where: { id: payload.id },
+            include: { roles: true },
+        });
+
+        if (user && !user.isBlocked) {
+            req.user = {
+                id: user.id,
+                email: user.email,
+                firstName: user.firstName,
+                lastName: user.lastName,
+                location: user.location,
+                imageUrl: user.imageUrl,
+                roles: user.roles.map((r) => r.role),
+                theme: user.theme,
+                language: user.language,
+                version: user.version,
+            };
+        }
+    } catch {
+        // Invalid/expired token: proceed as anonymous rather than erroring.
+    }
+
+    next();
+};
+
 export const requireRole = (...roles) => (req, res, next) => {
     if (!req.user) {
         return res.status(401).json({ message: "Not authenticated" });

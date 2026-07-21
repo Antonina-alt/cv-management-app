@@ -55,19 +55,21 @@ const PositionAttributesSection = ({ attributes, onSave, disabled }) => {
 
     return (
         <div>
-            <div className="d-flex gap-2 mb-3">
-                <Button variant="primary" size="sm" disabled={disabled} onClick={() => setShowPicker(true)}>
-                    {t('positions.attributesSection.add')}
-                </Button>
-                <Button
-                    variant="outline-danger"
-                    size="sm"
-                    disabled={disabled || selectedIds.length === 0}
-                    onClick={handleRemove}
-                >
-                    {t('positions.attributesSection.remove')}
-                </Button>
-            </div>
+            {!disabled && (
+                <div className="d-flex gap-2 mb-3">
+                    <Button variant="primary" size="sm" onClick={() => setShowPicker(true)}>
+                        {t('positions.attributesSection.add')}
+                    </Button>
+                    <Button
+                        variant="outline-danger"
+                        size="sm"
+                        disabled={selectedIds.length === 0}
+                        onClick={handleRemove}
+                    >
+                        {t('positions.attributesSection.remove')}
+                    </Button>
+                </div>
+            )}
 
             {attributes.length === 0 ? (
                 <p className="text-muted">{t('positions.attributesSection.empty')}</p>
@@ -75,7 +77,7 @@ const PositionAttributesSection = ({ attributes, onSave, disabled }) => {
                 <Table hover responsive>
                     <thead>
                         <tr>
-                            <th />
+                            {!disabled && <th />}
                             <th>{t('attributes.table.name')}</th>
                             <th>{t('attributes.table.category')}</th>
                             <th>{t('attributes.table.type')}</th>
@@ -85,18 +87,20 @@ const PositionAttributesSection = ({ attributes, onSave, disabled }) => {
                         {attributes.map((link) => (
                             <tr
                                 key={link.attributeId}
-                                className={selectedIds.includes(link.attributeId) ? 'table-active' : ''}
-                                style={{ cursor: 'pointer' }}
-                                onClick={() => toggleSelected(link.attributeId)}
+                                className={!disabled && selectedIds.includes(link.attributeId) ? 'table-active' : ''}
+                                style={disabled ? undefined : { cursor: 'pointer' }}
+                                onClick={disabled ? undefined : () => toggleSelected(link.attributeId)}
                             >
-                                <td onClick={(e) => e.stopPropagation()}>
-                                    <input
-                                        type="checkbox"
-                                        className="form-check-input"
-                                        checked={selectedIds.includes(link.attributeId)}
-                                        onChange={() => toggleSelected(link.attributeId)}
-                                    />
-                                </td>
+                                {!disabled && (
+                                    <td onClick={(e) => e.stopPropagation()}>
+                                        <input
+                                            type="checkbox"
+                                            className="form-check-input"
+                                            checked={selectedIds.includes(link.attributeId)}
+                                            onChange={() => toggleSelected(link.attributeId)}
+                                        />
+                                    </td>
+                                )}
                                 <td>{link.attribute.name}</td>
                                 <td>{link.attribute.category?.name}</td>
                                 <td><AttributeTypeBadge type={link.attribute.type} /></td>

@@ -59,9 +59,20 @@ beforeAll(async () => {
 });
 
 describe("GET /api/positions", () => {
-    it("rejects unauthenticated requests", async () => {
+    it("only shows anonymous visitors public positions", async () => {
+        const { agent: recruiter } = await registerAndLogin(["RECRUITER"], "list-anon-recruiter");
+
+        const publicPos = await recruiter.post("/api/positions").send({ title: unique("Public Pos"), isPublic: true });
+        createdPositionIds.push(publicPos.body.id);
+
+        const restrictedPos = await recruiter.post("/api/positions").send({ title: unique("Restricted Pos"), isPublic: false });
+        createdPositionIds.push(restrictedPos.body.id);
+
         const res = await request(app).get("/api/positions");
-        expect(res.status).toBe(401);
+        expect(res.status).toBe(200);
+        const visibleIds = res.body.map((p) => p.id);
+        expect(visibleIds).toContain(publicPos.body.id);
+        expect(visibleIds).not.toContain(restrictedPos.body.id);
     });
 
     it("only shows candidates positions they have access to", async () => {

@@ -32,9 +32,11 @@ const PositionProjectFilterSection = ({ tags, maxProjects, onSave, disabled }) =
                         {t('positions.projectFilter.maxProjects', { count: maxProjects })}
                     </div>
                 </div>
-                <Button variant="outline-primary" size="sm" disabled={disabled} onClick={openModal}>
-                    {t('positions.projectFilter.edit')}
-                </Button>
+                {!disabled && (
+                    <Button variant="outline-primary" size="sm" onClick={openModal}>
+                        {t('positions.projectFilter.edit')}
+                    </Button>
+                )}
             </div>
 
             <Modal show={show} onHide={() => setShow(false)}>

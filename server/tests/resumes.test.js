@@ -246,6 +246,48 @@ describe("hiding resumes when access is lost", () => {
     });
 });
 
+describe("resume likes", () => {
+    it("lets a recruiter like and unlike, without creating duplicates on repeat likes", async () => {
+        const { agent: recruiter } = await registerAndLogin(["RECRUITER"], "like-recruiter");
+        const { agent: candidate } = await registerAndLogin([], "like-candidate");
+
+        const position = await recruiter.post("/api/positions").send({ title: unique("Like Pos"), isPublic: true });
+        createdPositionIds.push(position.body.id);
+
+        const created = await candidate.post("/api/resumes").send({ positionId: position.body.id });
+        await prisma.resume.update({ where: { id: created.body.id }, data: { status: "PUBLISHED" } });
+
+        const firstLike = await recruiter.put(`/api/resumes/${created.body.id}/like`);
+        expect(firstLike.status).toBe(200);
+        expect(firstLike.body).toEqual({ likeCount: 1, likedByMe: true });
+
+        const secondLike = await recruiter.put(`/api/resumes/${created.body.id}/like`);
+        expect(secondLike.status).toBe(200);
+        expect(secondLike.body).toEqual({ likeCount: 1, likedByMe: true });
+
+        const likeRows = await prisma.resumeLike.count({ where: { resumeId: created.body.id } });
+        expect(likeRows).toBe(1);
+
+        const unlike = await recruiter.delete(`/api/resumes/${created.body.id}/like`);
+        expect(unlike.status).toBe(200);
+        expect(unlike.body).toEqual({ likeCount: 0, likedByMe: false });
+    });
+
+    it("forbids a candidate from liking a resume", async () => {
+        const { agent: recruiter } = await registerAndLogin(["RECRUITER"], "like-forbid-recruiter");
+        const { agent: candidate } = await registerAndLogin([], "like-forbid-candidate");
+
+        const position = await recruiter.post("/api/positions").send({ title: unique("Like Forbid Pos"), isPublic: true });
+        createdPositionIds.push(position.body.id);
+
+        const created = await candidate.post("/api/resumes").send({ positionId: position.body.id });
+        await prisma.resume.update({ where: { id: created.body.id }, data: { status: "PUBLISHED" } });
+
+        const res = await candidate.put(`/api/resumes/${created.body.id}/like`);
+        expect(res.status).toBe(403);
+    });
+});
+
 afterAll(async () => {
     await prisma.resume.deleteMany({ where: { positionId: { in: createdPositionIds } } });
     await prisma.position.deleteMany({ where: { id: { in: createdPositionIds } } });

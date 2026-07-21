@@ -81,7 +81,10 @@ router.get("/:candidateId", requireAuth, requireSelfOrAdmin("candidateId"), asyn
         }),
         prisma.resume.findMany({
             where: { candidateId },
-            include: { position: { include: { accessRules: { include: { attribute: true } } } } },
+            include: {
+                position: { include: { accessRules: { include: { attribute: true } } } },
+                _count: { select: { likes: true } },
+            },
             orderBy: { updatedAt: "desc" },
         }),
     ]);
