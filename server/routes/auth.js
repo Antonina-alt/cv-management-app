@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { prisma } from "../lib/prisma.js";
 import { requireAuth } from "../middleware/auth.js";
+import { toPublicUser } from "../lib/publicUser.js";
 
 const router = express.Router();
 
@@ -18,17 +19,6 @@ const generateToken = (id) => {
         expiresIn: '30d',
     });
 }
-
-const toPublicUser = (user) => ({
-    id: user.id,
-    email: user.email,
-    firstName: user.firstName,
-    lastName: user.lastName,
-    roles: user.roles.map((r) => r.role),
-    theme: user.theme,
-    language: user.language,
-    version: user.version,
-});
 
 router.post('/register', async (req, res) => {
     const { email, password, firstName, lastName } = req.body ?? {};
