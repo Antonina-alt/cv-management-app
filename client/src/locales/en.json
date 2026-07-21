@@ -40,6 +40,7 @@
         "empty": "No attributes found.",
         "systemBadge": "System",
         "systemNoDelete": "System attributes cannot be deleted",
+        "selectAll": "Select all",
         "conflict": "This attribute was changed by someone else. The list has been refreshed.",
         "table": {
             "name": "Name",

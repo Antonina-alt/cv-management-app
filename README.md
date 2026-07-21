@@ -91,6 +91,7 @@ cp .env.example server/.env        # заполнить значениями
 cd server
 npm install
 npx prisma migrate dev
+npx prisma generate
 npm run dev                         # http://localhost:5050
 curl http://localhost:5050/api/health   # {"status":"ok"}
 

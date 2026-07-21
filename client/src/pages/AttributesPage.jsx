@@ -10,7 +10,7 @@ import AttributeFormModal from '../components/attributes/AttributeFormModal.jsx'
 const AttributesPage = () => {
     const { t } = useTranslation()
     const [categories, setCategories] = useState([])
-    const [selected, setSelected] = useState(null)
+    const [selectedAttrs, setSelectedAttrs] = useState([])
     const [refreshToken, setRefreshToken] = useState(0)
     const [modal, setModal] = useState(null) // 'create' | 'edit' | 'delete'
     const [formError, setFormError] = useState(null)
@@ -22,10 +22,30 @@ const AttributesPage = () => {
 
     const refresh = () => setRefreshToken((v) => v + 1)
 
-    const handleSelectRow = (attr) => {
-        setSelected((prev) => (prev?.id === attr.id ? null : attr))
+    const selectedIds = selectedAttrs.map((a) => a.id)
+    const singleSelected = selectedAttrs.length === 1 ? selectedAttrs[0] : null
+    const canDelete = selectedAttrs.length > 0 && selectedAttrs.every((a) => !a.systemKey)
+    const hasSystemSelected = selectedAttrs.some((a) => a.systemKey)
+
+    const handleToggleRow = (attr) => {
+        setSelectedAttrs((prev) => (
+            prev.some((a) => a.id === attr.id)
+                ? prev.filter((a) => a.id !== attr.id)
+                : [...prev, attr]
+        ))
         pushRecentAttributeId(attr.id)
         refresh()
+    }
+
+    const handleToggleAll = (attrs, selectAll) => {
+        setSelectedAttrs((prev) => {
+            if (selectAll) {
+                const existingIds = new Set(prev.map((a) => a.id))
+                return [...prev, ...attrs.filter((a) => !existingIds.has(a.id))]
+            }
+            const removedIds = new Set(attrs.map((a) => a.id))
+            return prev.filter((a) => !removedIds.has(a.id))
+        })
     }
 
     const closeModal = () => {
@@ -46,15 +66,15 @@ const AttributesPage = () => {
 
     const handleEditSubmit = async (payload) => {
         try {
-            const updated = await updateAttribute(selected.id, { ...payload, version: selected.version })
-            setSelected(updated)
+            const updated = await updateAttribute(singleSelected.id, { ...payload, version: singleSelected.version })
+            setSelectedAttrs([updated])
             setBanner(null)
             closeModal()
             refresh()
         } catch (err) {
             if (err instanceof ConflictError) {
                 setBanner(t('attributes.conflict'))
-                setSelected(null)
+                setSelectedAttrs([])
                 closeModal()
                 refresh()
             } else {
@@ -65,9 +85,9 @@ const AttributesPage = () => {
 
     const handleDeleteConfirm = async () => {
         try {
-            await deleteAttribute(selected.id, selected.version)
+            await Promise.all(selectedAttrs.map((a) => deleteAttribute(a.id, a.version)))
             setBanner(null)
-            setSelected(null)
+            setSelectedAttrs([])
             closeModal()
             refresh()
         } catch (err) {
@@ -76,7 +96,7 @@ const AttributesPage = () => {
             } else {
                 setBanner(err.message)
             }
-            setSelected(null)
+            setSelectedAttrs([])
             closeModal()
             refresh()
         }
@@ -98,20 +118,25 @@ const AttributesPage = () => {
                 <Button variant="primary" onClick={() => setModal('create')}>
                     {t('attributes.toolbar.create')}
                 </Button>
-                <Button variant="outline-secondary" disabled={!selected} onClick={() => setModal('edit')}>
+                <Button variant="outline-secondary" disabled={!singleSelected} onClick={() => setModal('edit')}>
                     {t('attributes.toolbar.edit')}
                 </Button>
                 <Button
                     variant="outline-danger"
-                    disabled={!selected || Boolean(selected?.systemKey)}
-                    title={selected?.systemKey ? t('attributes.systemNoDelete') : undefined}
+                    disabled={!canDelete}
+                    title={hasSystemSelected ? t('attributes.systemNoDelete') : undefined}
                     onClick={() => setModal('delete')}
                 >
                     {t('attributes.toolbar.delete')}
                 </Button>
             </div>
 
-            <AttributeList selectedId={selected?.id} onSelectRow={handleSelectRow} refreshToken={refreshToken} />
+            <AttributeList
+                selectedIds={selectedIds}
+                onToggleRow={handleToggleRow}
+                onToggleAll={handleToggleAll}
+                refreshToken={refreshToken}
+            />
 
             {modal === 'create' && (
                 <AttributeFormModal
@@ -123,14 +148,14 @@ const AttributesPage = () => {
                 />
             )}
 
-            {modal === 'edit' && selected && (
+            {modal === 'edit' && singleSelected && (
                 <AttributeFormModal
-                    key={selected.id}
+                    key={singleSelected.id}
                     show
                     onClose={closeModal}
                     onSubmit={handleEditSubmit}
                     categories={categories}
-                    attribute={selected}
+                    attribute={singleSelected}
                     error={formError}
                 />
             )}
@@ -140,7 +165,7 @@ const AttributesPage = () => {
                     <Modal.Title>{t('attributes.deleteConfirm.title')}</Modal.Title>
                 </Modal.Header>
                 <Modal.Body>
-                    {t('attributes.deleteConfirm.body', { name: selected?.name })}
+                    {t('attributes.deleteConfirm.body', { name: selectedAttrs.map((a) => a.name).join(', ') })}
                 </Modal.Body>
                 <Modal.Footer>
                     <Button variant="secondary" onClick={closeModal}>
