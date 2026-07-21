@@ -118,7 +118,7 @@ const AttributesPage = () => {
                 <Button variant="primary" onClick={() => setModal('create')}>
                     {t('attributes.toolbar.create')}
                 </Button>
-                <Button variant="outline-secondary" disabled={!singleSelected} onClick={() => setModal('edit')}>
+                <Button variant="outline-primary" disabled={!singleSelected} onClick={() => setModal('edit')}>
                     {t('attributes.toolbar.edit')}
                 </Button>
                 <Button

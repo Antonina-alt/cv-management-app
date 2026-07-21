@@ -87,7 +87,7 @@ const ProjectsSection = ({ candidateId, initialProjects, onConflict }) => {
                 <Button variant="primary" onClick={() => setModal('create')}>
                     {t('profile.projects.create')}
                 </Button>
-                <Button variant="outline-secondary" disabled={!singleSelected} onClick={() => setModal('edit')}>
+                <Button variant="outline-primary" disabled={!singleSelected} onClick={() => setModal('edit')}>
                     {t('profile.projects.edit')}
                 </Button>
                 <Button variant="outline-danger" disabled={selected.length === 0} onClick={() => setModal('delete')}>
