@@ -17,7 +17,7 @@ const PositionsPage = () => {
     const selection = useObjectSelection()
 
     const [refreshToken, setRefreshToken] = useState(0)
-    const [modal, setModal] = useState(null) // 'create' | 'delete'
+    const [modal, setModal] = useState(null)
     const [formError, setFormError] = useState(null)
     const [banner, setBanner] = useState(null)
 

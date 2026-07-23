@@ -228,7 +228,6 @@ describe("hiding resumes when access is lost", () => {
         const created = await candidate.post("/api/resumes").send({ positionId: position.body.id });
         await prisma.resume.update({ where: { id: created.body.id }, data: { status: "PUBLISHED" } });
 
-        // Tighten access: restrict the position with a rule the candidate fails.
         await recruiter.patch(`/api/positions/${position.body.id}`).send({
             isPublic: false,
             accessRules: [{ attributeId: numberAttribute.id, operator: "GREATER_THAN", numberValue: 7 }],

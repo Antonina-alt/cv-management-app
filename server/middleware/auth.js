@@ -41,9 +41,7 @@ export const optionalAuth = async (req, res, next) => {
     try {
         const user = await findActiveUser(token);
         if (user) req.user = toRequestUser(user);
-    } catch {
-        /* proceed anonymous */
-    }
+    } catch {}
     next();
 };
 

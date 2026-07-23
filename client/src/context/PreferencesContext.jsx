@@ -36,9 +36,7 @@ export const PreferencesProvider = ({ children }) => {
         try {
             const updated = await authApi.updateMe({ theme: next.toUpperCase(), version: user.version })
             updateUser(updated)
-        } catch {
-            // stale version or transient error: next toggle will use the latest known state
-        }
+        } catch {}
     }, [user, updateUser])
 
     const setLanguage = useCallback(async (next) => {
@@ -50,9 +48,7 @@ export const PreferencesProvider = ({ children }) => {
         try {
             const updated = await authApi.updateMe({ language: next.toUpperCase(), version: user.version })
             updateUser(updated)
-        } catch {
-            // stale version or transient error: next toggle will use the latest known state
-        }
+        } catch {}
     }, [user, updateUser])
 
     return (

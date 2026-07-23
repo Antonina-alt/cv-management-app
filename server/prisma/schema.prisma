@@ -82,8 +82,6 @@ model User {
     language Language @default(EN)
     theme    Theme    @default(LIGHT)
 
-    // Generated column (firstName + lastName + location), kept in sync by Postgres. Lets resume
-    // search match on candidate identity without a query per candidate. See migration SQL.
     searchVector Unsupported("tsvector")?
 
     roles           UserRole[]
@@ -133,7 +131,6 @@ model Project {
 
     tags ProjectTag[]
 
-    // Generated column (title + description). See migration SQL.
     searchVector Unsupported("tsvector")?
 
     @@index([candidateId])
@@ -233,9 +230,6 @@ model CandidateAttributeValue {
 
     selectedOption AttributeOption? @relation(fields: [selectedOptionId], references: [id], onDelete: SetNull)
 
-    // Generated column (stringValue only — the free-text attribute types). Lets resume search
-    // match on filled-in attribute content (e.g. "English Level: Fluent") without a query per
-    // candidate. See migration SQL.
     searchVector Unsupported("tsvector")?
 
     @@unique([candidateId, attributeId])
@@ -256,7 +250,6 @@ model Position {
     createdAt   DateTime       @default(now())
     updatedAt   DateTime       @updatedAt
 
-    // Generated column (title + description + company). See migration SQL.
     searchVector Unsupported("tsvector")?
 
     resumes           Resume[]

@@ -14,8 +14,6 @@ DataTable.use(DT)
 
 const LEVELS = ['JUNIOR', 'MIDDLE', 'SENIOR', 'LEAD', 'C_LEVEL']
 
-// Positions table shared by the manage-mode toolbar (recruiter/admin) and the read-only
-// candidate view. Selection (checkbox rows, no per-row buttons) mirrors AttributeList.
 const PositionList = ({ selectedIds = [], onToggleRow, onToggleAll, refreshToken, onRowClick }) => {
     const { t } = useTranslation()
     const [company, setCompany] = useState('')

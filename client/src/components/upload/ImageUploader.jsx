@@ -6,9 +6,6 @@ import { uploadImage } from '../../api/images.js'
 const ALLOWED_MIME_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/gif']
 const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024
 
-// Reusable, entity-agnostic image drag&drop uploader (used by the profile photo now,
-// and by CandidateAttributeValue IMAGE attributes later). It only knows how to upload/
-// report a URL — the parent owns the DB link (write on upload, unlink+delete on remove).
 const ImageUploader = ({ value, onUpload, onRemove, disabled }) => {
     const { t } = useTranslation()
     const [uploading, setUploading] = useState(false)
@@ -39,8 +36,6 @@ const ImageUploader = ({ value, onUpload, onRemove, disabled }) => {
         disabled: disabled || uploading,
     })
 
-    // Once an image is set, drop the dropzone chrome (border/padding/hint text) and show just
-    // the image — it's still clickable/droppable to replace, only the framing goes away.
     const showDropzoneChrome = !value || uploading
 
     return (

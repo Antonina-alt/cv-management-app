@@ -183,7 +183,6 @@ describe("POST/DELETE /api/admin/users/:id/roles/:role", () => {
         expect(res.status).toBe(200);
         expect(res.body.roles).not.toContain("ADMIN");
 
-        // Having just removed their own admin role, a follow-up admin action must now be forbidden.
         const followUp = await agent.get("/api/admin/users");
         expect(followUp.status).toBe(403);
     });

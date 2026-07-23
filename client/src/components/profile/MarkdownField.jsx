@@ -3,8 +3,6 @@ import { Button, Form } from 'react-bootstrap'
 import ReactMarkdown from 'react-markdown'
 import { useTranslation } from 'react-i18next'
 
-// Reusable markdown textarea + preview toggle, used by TEXT-type attribute values and by
-// project descriptions.
 const MarkdownField = ({ value, onChange, disabled, rows = 4 }) => {
     const { t } = useTranslation()
     const [preview, setPreview] = useState(false)

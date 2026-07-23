@@ -4,8 +4,6 @@ import 'react-bootstrap-typeahead/css/Typeahead.css'
 import { useTranslation } from 'react-i18next'
 import { searchTags } from '../../api/tags.js'
 
-// Ready-made tag-input control (react-bootstrap-typeahead in creatable multi-select mode)
-// with autocomplete over previously used tags, per the spec's requirement.
 const TagInput = ({ value, onChange, disabled }) => {
     const { t } = useTranslation()
     const [options, setOptions] = useState([])

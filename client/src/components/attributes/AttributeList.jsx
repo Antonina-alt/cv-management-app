@@ -13,8 +13,6 @@ import AttributeTypeBadge from './AttributeTypeBadge.jsx'
 // eslint-disable-next-line react-hooks/rules-of-hooks -- DataTables static registration, not a React hook
 DataTable.use(DT)
 
-// Shared list used both as the manage-mode table (task 04, with a toolbar above it)
-// and, later, as the attribute picker inside other forms (tasks 06/07).
 const AttributeList = ({ selectedIds = [], onToggleRow, onToggleAll, refreshToken, excludeIds, excludeSystem }) => {
     const { t } = useTranslation()
     const [categories, setCategories] = useState([])
@@ -43,7 +41,6 @@ const AttributeList = ({ selectedIds = [], onToggleRow, onToggleAll, refreshToke
         attributesRef.current = visibleAttributes
     })
 
-    // Re-read on every refreshToken bump so a fresh pick is reflected immediately.
     // eslint-disable-next-line react-hooks/exhaustive-deps
     const recentIds = useMemo(() => getRecentAttributeIds(), [refreshToken])
 

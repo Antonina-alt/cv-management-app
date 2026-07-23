@@ -3,8 +3,6 @@ import ReactMarkdown from 'react-markdown'
 
 const formatDate = (value) => (value ? new Date(value).toLocaleDateString() : '')
 
-// Read-only — the resume's project list is already filtered/capped server-side
-// (buildResumeProjects); this just renders it.
 const ResumeProjectsSection = ({ projects }) => {
     const { t } = useTranslation()
 

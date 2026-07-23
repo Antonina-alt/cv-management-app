@@ -31,9 +31,6 @@ const formatReadOnly = (attribute, value, t) => {
     }
 }
 
-// Owns its own local edit state (seeded once from the value it was mounted with) so keystrokes
-// don't ripple through the whole resume page — same pattern as InformationSection's
-// AttributeValueCell. Reports emptiness up so the page can gate the Publish button.
 const ResumeAttributeField = ({ attribute, value, editable, onSave, onEmptyChange }) => {
     const { t } = useTranslation()
     const [local, setLocal] = useState(value)

@@ -12,13 +12,10 @@ const formatValue = (rule, t) => {
     return rule.stringValue
 }
 
-// Access rules table + Add/Edit/Delete toolbar (single-row select via checkbox, no row
-// buttons). isPublic positions still allow rules to be configured (they're simply ignored
-// while isPublic is true), so the section is always visible.
 const PositionAccessRulesSection = ({ rules, onSave, disabled }) => {
     const { t } = useTranslation()
     const [selectedId, setSelectedId] = useState(null)
-    const [modal, setModal] = useState(null) // 'create' | 'edit' | 'delete'
+    const [modal, setModal] = useState(null)
     const [formError, setFormError] = useState(null)
 
     const selectedRule = rules.find((r) => r.id === selectedId) ?? null

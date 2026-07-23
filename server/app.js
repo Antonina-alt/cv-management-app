@@ -22,10 +22,6 @@ const app = express();
 app.use(express.json());
 app.use(cookieParser());
 
-app.get('/', (req, res) => {
-    res.send('Hello World!');
-});
-
 app.use('/api/health', healthRouter);
 app.use('/api/auth', authRouter);
 app.use('/api/attributes', attributesRouter);

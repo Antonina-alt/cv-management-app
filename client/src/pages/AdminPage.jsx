@@ -17,7 +17,7 @@ const AdminPage = () => {
     const selection = useObjectSelection()
 
     const [refreshToken, setRefreshToken] = useState(0)
-    const [modal, setModal] = useState(null) // 'delete' | 'roles'
+    const [modal, setModal] = useState(null)
     const [formError, setFormError] = useState(null)
     const [banner, setBanner] = useState(null)
 

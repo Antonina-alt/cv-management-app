@@ -35,8 +35,6 @@ const ProfilePage = () => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
 
-    // Sections remount (via the refreshToken-derived key) to pick up the reloaded data, so the
-    // conflict banner is owned here rather than inside the section that's about to unmount.
     const handleConflict = () => {
         setBanner(t('profile.conflict'))
         setRefreshToken((v) => v + 1)
@@ -53,9 +51,6 @@ const ProfilePage = () => {
         return <div className="alert alert-danger">{t('profile.forbidden')}</div>
     }
 
-    // For your own profile, the auth context already has firstName/lastName/email/roles, so the
-    // header renders instantly instead of waiting on the profile fetch. When viewing another
-    // candidate (admin only), that data only exists once `profile` has loaded.
     const displayUser = profile?.user ?? (candidateId ? null : user)
 
     return (

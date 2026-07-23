@@ -65,10 +65,6 @@ describe("GET /api/home/stats", () => {
         });
     });
 
-    // Other test files hit the same shared DB concurrently, so a "before" snapshot can go stale
-    // by the time "after" is fetched — an exact-equality delta would be flaky under a full-suite
-    // parallel run. `toBeGreaterThanOrEqual` tolerates that noise while still proving each metric
-    // moved by at least the amount this test itself is responsible for.
     it("counts positions, roles and resumes correctly", async () => {
         const before = (await request(app).get("/api/home/stats")).body;
 
@@ -80,8 +76,6 @@ describe("GET /api/home/stats", () => {
         const resume = await candidate.post("/api/resumes").send({ positionId: position.body.id });
         await prisma.resume.update({ where: { id: resume.body.id }, data: { status: "PUBLISHED" } });
 
-        // Backdated well outside the 24h window: must count toward totalSubmittedResumes once
-        // published, but must not count toward resumesLast24h.
         const position2 = await recruiter.post("/api/positions").send({ title: unique("Stats Pos 2"), isPublic: true });
         createdPositionIds.push(position2.body.id);
         const oldResume = await candidate.post("/api/resumes").send({ positionId: position2.body.id });
@@ -94,14 +88,10 @@ describe("GET /api/home/stats", () => {
 
         expect(after.totalPositions).toBeGreaterThanOrEqual(before.totalPositions + 2);
         expect(after.totalRecruiters).toBeGreaterThanOrEqual(before.totalRecruiters + 1);
-        // Every registered user gets the CANDIDATE role by default, so both the recruiter and
-        // the candidate agent add one CANDIDATE row each.
         expect(after.totalCandidates).toBeGreaterThanOrEqual(before.totalCandidates + 2);
         expect(after.totalSubmittedResumes).toBeGreaterThanOrEqual(before.totalSubmittedResumes + 2);
         expect(after.resumesLast24h).toBeGreaterThanOrEqual(before.resumesLast24h + 1);
 
-        // The 24h-window exclusion itself is checked deterministically, scoped to just these two
-        // resume ids so it's immune to concurrent writes from other test files.
         const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
         const [oldIsRecent, freshIsRecent] = await Promise.all([
             prisma.resume.count({ where: { id: oldResume.body.id, createdAt: { gte: since } } }),

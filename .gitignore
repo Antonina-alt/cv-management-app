@@ -25,3 +25,13 @@ dist-ssr
 *.sln
 *.sw?
 /.playwright-mcp/
+CLAUDE.md
+.claude/
+.mcp.json
+.playwright-mcp/
+.cursor/
+.cursorignore
+
+# Logs
+*.log
+npm-debug.log*

@@ -4,8 +4,6 @@ import ImageUploader from '../upload/ImageUploader.jsx'
 import MarkdownField from './MarkdownField.jsx'
 import { toDateInputValue } from '../../lib/dateInput.js'
 
-// Renders the correct input for one CandidateAttributeValue based on attribute.type.
-// Calls onChange with only the typed field(s) relevant to that type.
 const AttributeValueField = ({ attribute, value, onChange, disabled }) => {
     const { t } = useTranslation()
 

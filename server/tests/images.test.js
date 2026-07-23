@@ -10,7 +10,6 @@ beforeAll(async () => {
 
 const unique = (label) => `${label}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
-// Smallest valid 1x1 transparent PNG.
 const PNG_BUFFER = Buffer.from(
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
     "base64",

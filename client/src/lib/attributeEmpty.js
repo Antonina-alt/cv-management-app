@@ -1,5 +1,3 @@
-// Mirrors server/lib/resumeContent.js's isValueEmpty, adapted for the client's in-progress edit
-// state (form inputs hand back numberValue as a string, not a number).
 export const isAttributeValueEmpty = (type, value) => {
     switch (type) {
         case 'STRING':

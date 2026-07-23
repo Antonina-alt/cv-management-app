@@ -28,7 +28,6 @@ const registerAndLogin = async (roles, label) => {
         });
     }
 
-    // re-login so the JWT/session reflects any role changes made after registration
     await agent.post("/api/auth/login").send({ email, password: "correct-password" });
 
     return agent;
