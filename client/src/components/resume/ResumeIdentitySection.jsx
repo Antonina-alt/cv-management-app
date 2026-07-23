@@ -1,86 +1,32 @@
-import { useEffect, useRef, useState } from 'react'
 import { Form } from 'react-bootstrap'
 import { useTranslation } from 'react-i18next'
 import ImageUploader from '../upload/ImageUploader.jsx'
-import { updateAbout, setProfileImage, removeProfileImage } from '../../api/profile.js'
-import { deleteImage } from '../../api/images.js'
-import { ConflictError } from '../../api/http.js'
+import { useIdentityForm } from '../../hooks/useIdentityForm.js'
 
-// The candidate's always-shown identity block (name/location/photo), stored directly on User.
-// Text fields autosave through the shared debounce queue; the photo drop/remove saves
-// immediately. /api/profile/:candidateId/image is candidate-scoped (self or admin, see server
-// route), so editableImage is driven purely by the parent's edit permission, not by identity.
+const IdentityPhoto = ({ candidate, editableImage, onUpload, onRemove, t }) => {
+    if (editableImage) return <ImageUploader value={candidate.imageUrl} onUpload={onUpload} onRemove={onRemove} />
+    if (candidate.imageUrl) {
+        return (
+            <img
+                src={candidate.imageUrl}
+                alt={t('profile.image.preview')}
+                className="img-thumbnail"
+                style={{ maxWidth: 160, maxHeight: 160 }}
+            />
+        )
+    }
+    return <div className="border border-danger rounded p-4 text-center text-danger">{t('resume.identity.noPhoto')}</div>
+}
+
 const ResumeIdentitySection = ({ candidate, editableText, editableImage, autosave, onConflict, onCandidateChange }) => {
     const { t } = useTranslation()
-    const [form, setForm] = useState({
-        firstName: candidate.firstName,
-        lastName: candidate.lastName,
-        location: candidate.location ?? '',
+    const { form, banner, setBanner, handleField, handleUploadImage, handleRemoveImage } = useIdentityForm(candidate, {
+        autosaveKey: 'resume-about',
+        conflictMessage: t('resume.identity.conflict'),
+        autosave,
+        onConflict,
+        onCandidateChange,
     })
-    const [banner, setBanner] = useState(null)
-    const versionRef = useRef(candidate.version)
-
-    useEffect(() => {
-        versionRef.current = candidate.version
-    }, [candidate.version])
-
-    const flush = async (fields) => {
-        try {
-            const updated = await updateAbout(candidate.id, { ...fields, version: versionRef.current })
-            versionRef.current = updated.version
-            onCandidateChange(updated)
-            setBanner(null)
-        } catch (err) {
-            if (err instanceof ConflictError) {
-                onConflict?.()
-            } else {
-                setBanner(err.message)
-            }
-        }
-    }
-
-    const handleField = (field, value) => {
-        const next = { ...form, [field]: value }
-        setForm(next)
-        autosave.schedule('resume-about', () => flush(next))
-    }
-
-    const handleUploadImage = async (url) => {
-        try {
-            const updated = await setProfileImage(candidate.id, url, versionRef.current)
-            versionRef.current = updated.version
-            onCandidateChange(updated)
-            setBanner(null)
-        } catch (err) {
-            if (err instanceof ConflictError) {
-                setBanner(t('resume.identity.conflict'))
-                onConflict?.()
-            } else {
-                setBanner(err.message)
-            }
-        }
-    }
-
-    const handleRemoveImage = async () => {
-        const previousUrl = candidate.imageUrl
-        try {
-            const updated = await removeProfileImage(candidate.id, versionRef.current)
-            versionRef.current = updated.version
-            onCandidateChange(updated)
-            setBanner(null)
-            if (previousUrl) {
-                deleteImage(previousUrl).catch(() => {})
-            }
-        } catch (err) {
-            if (err instanceof ConflictError) {
-                setBanner(t('resume.identity.conflict'))
-                onConflict?.()
-            } else {
-                setBanner(err.message)
-            }
-        }
-    }
-
     const locationEmpty = !form.location
 
     return (
@@ -93,20 +39,13 @@ const ResumeIdentitySection = ({ candidate, editableText, editableImage, autosav
             )}
             <div className="row g-4">
                 <div className="col-md-3">
-                    {editableImage ? (
-                        <ImageUploader value={candidate.imageUrl} onUpload={handleUploadImage} onRemove={handleRemoveImage} />
-                    ) : candidate.imageUrl ? (
-                        <img
-                            src={candidate.imageUrl}
-                            alt={t('profile.image.preview')}
-                            className="img-thumbnail"
-                            style={{ maxWidth: 160, maxHeight: 160 }}
-                        />
-                    ) : (
-                        <div className="border border-danger rounded p-4 text-center text-danger">
-                            {t('resume.identity.noPhoto')}
-                        </div>
-                    )}
+                    <IdentityPhoto
+                        candidate={candidate}
+                        editableImage={editableImage}
+                        onUpload={handleUploadImage}
+                        onRemove={handleRemoveImage}
+                        t={t}
+                    />
                 </div>
                 <div className="col-md-9">
                     <Form.Group className="mb-3">

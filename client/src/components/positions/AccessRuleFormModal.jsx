@@ -24,6 +24,61 @@ const initialFormFor = (rule) => (rule
     }
     : { attributeId: '', operator: '', stringValue: '', numberValue: '', dateValue: '', optionId: '' })
 
+const StringValueField = ({ value, onChange, t }) => (
+    <Form.Group className="mb-3">
+        <Form.Label>{t('positions.accessRules.form.value')}</Form.Label>
+        <Form.Control required value={value} onChange={onChange} />
+    </Form.Group>
+)
+
+const NumberValueField = ({ value, onChange, t }) => (
+    <Form.Group className="mb-3">
+        <Form.Label>{t('positions.accessRules.form.value')}</Form.Label>
+        <Form.Control type="number" required value={value} onChange={onChange} />
+    </Form.Group>
+)
+
+const DateValueField = ({ value, onChange, t }) => (
+    <Form.Group className="mb-3">
+        <Form.Label>{t('positions.accessRules.form.value')}</Form.Label>
+        <Form.Control type="date" required value={value} onChange={onChange} />
+    </Form.Group>
+)
+
+const SelectValueField = ({ attribute, value, onChange, t }) => (
+    <Form.Group className="mb-3">
+        <Form.Label>{t('positions.accessRules.form.value')}</Form.Label>
+        <Form.Select required value={value} onChange={onChange}>
+            {attribute.options?.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
+        </Form.Select>
+    </Form.Group>
+)
+
+const VALUE_FIELD_BY_TYPE = {
+    STRING: { key: 'stringValue', Field: StringValueField },
+    TEXT: { key: 'stringValue', Field: StringValueField },
+    NUMBER: { key: 'numberValue', Field: NumberValueField },
+    DATE: { key: 'dateValue', Field: DateValueField },
+    SELECT: { key: 'optionId', Field: SelectValueField },
+}
+
+const ValueField = ({ attribute, form, setForm, t }) => {
+    const config = attribute && VALUE_FIELD_BY_TYPE[attribute.type]
+    if (!config) return null
+    const { key, Field } = config
+    const onChange = (e) => setForm((f) => ({ ...f, [key]: e.target.value }))
+    return <Field attribute={attribute} value={form[key]} onChange={onChange} t={t} />
+}
+
+const buildRulePayload = (form) => ({
+    attributeId: form.attributeId,
+    operator: form.operator,
+    stringValue: form.stringValue || undefined,
+    numberValue: form.numberValue !== '' ? form.numberValue : undefined,
+    dateValue: form.dateValue || undefined,
+    optionId: form.optionId || undefined,
+})
+
 const AccessRuleFormModal = ({ show, onClose, onSubmit, rule, error }) => {
     const { t } = useTranslation()
     const [attributes, setAttributes] = useState([])
@@ -59,14 +114,7 @@ const AccessRuleFormModal = ({ show, onClose, onSubmit, rule, error }) => {
 
     const handleSubmit = (e) => {
         e.preventDefault()
-        onSubmit({
-            attributeId: form.attributeId,
-            operator: form.operator,
-            stringValue: form.stringValue || undefined,
-            numberValue: form.numberValue !== '' ? form.numberValue : undefined,
-            dateValue: form.dateValue || undefined,
-            optionId: form.optionId || undefined,
-        })
+        onSubmit(buildRulePayload(form))
     }
 
     return (
@@ -110,55 +158,7 @@ const AccessRuleFormModal = ({ show, onClose, onSubmit, rule, error }) => {
                         </Form.Group>
                     )}
 
-                    {attribute && (attribute.type === 'STRING' || attribute.type === 'TEXT') && (
-                        <Form.Group className="mb-3">
-                            <Form.Label>{t('positions.accessRules.form.value')}</Form.Label>
-                            <Form.Control
-                                required
-                                value={form.stringValue}
-                                onChange={(e) => setForm((f) => ({ ...f, stringValue: e.target.value }))}
-                            />
-                        </Form.Group>
-                    )}
-
-                    {attribute?.type === 'NUMBER' && (
-                        <Form.Group className="mb-3">
-                            <Form.Label>{t('positions.accessRules.form.value')}</Form.Label>
-                            <Form.Control
-                                type="number"
-                                required
-                                value={form.numberValue}
-                                onChange={(e) => setForm((f) => ({ ...f, numberValue: e.target.value }))}
-                            />
-                        </Form.Group>
-                    )}
-
-                    {attribute?.type === 'DATE' && (
-                        <Form.Group className="mb-3">
-                            <Form.Label>{t('positions.accessRules.form.value')}</Form.Label>
-                            <Form.Control
-                                type="date"
-                                required
-                                value={form.dateValue}
-                                onChange={(e) => setForm((f) => ({ ...f, dateValue: e.target.value }))}
-                            />
-                        </Form.Group>
-                    )}
-
-                    {attribute?.type === 'SELECT' && (
-                        <Form.Group className="mb-3">
-                            <Form.Label>{t('positions.accessRules.form.value')}</Form.Label>
-                            <Form.Select
-                                required
-                                value={form.optionId}
-                                onChange={(e) => setForm((f) => ({ ...f, optionId: e.target.value }))}
-                            >
-                                {attribute.options?.map((o) => (
-                                    <option key={o.id} value={o.id}>{o.label}</option>
-                                ))}
-                            </Form.Select>
-                        </Form.Group>
-                    )}
+                    <ValueField attribute={attribute} form={form} setForm={setForm} t={t} />
                 </Modal.Body>
                 <Modal.Footer>
                     <Button variant="secondary" onClick={onClose} type="button">

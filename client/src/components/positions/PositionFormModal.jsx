@@ -15,6 +15,15 @@ const initialFormFor = (position) => (position
     }
     : { title: '', description: '', company: '', level: '', isPublic: false, maxProjects: 3 })
 
+const buildPositionPayload = (form) => ({
+    title: form.title.trim(),
+    description: form.description.trim() || null,
+    company: form.company.trim() || null,
+    level: form.level || null,
+    isPublic: form.isPublic,
+    maxProjects: Number(form.maxProjects),
+})
+
 const PositionFormModal = ({ show, onClose, onSubmit, position, error }) => {
     const { t } = useTranslation()
     const [form, setForm] = useState(() => initialFormFor(position))
@@ -22,14 +31,7 @@ const PositionFormModal = ({ show, onClose, onSubmit, position, error }) => {
 
     const handleSubmit = (e) => {
         e.preventDefault()
-        onSubmit({
-            title: form.title.trim(),
-            description: form.description.trim() || null,
-            company: form.company.trim() || null,
-            level: form.level || null,
-            isPublic: form.isPublic,
-            maxProjects: Number(form.maxProjects),
-        })
+        onSubmit(buildPositionPayload(form))
     }
 
     return (

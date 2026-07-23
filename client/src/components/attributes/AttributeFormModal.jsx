@@ -4,8 +4,6 @@ import { useTranslation } from 'react-i18next'
 
 const ATTRIBUTE_TYPES = ['STRING', 'TEXT', 'IMAGE', 'NUMBER', 'DATE', 'DATE_RANGE', 'BOOLEAN', 'SELECT']
 
-// The parent remounts this component (via a `key`) whenever it opens for a
-// different attribute, so the initial state below only needs to be computed once per mount.
 const initialFormFor = (attribute, categories) => (attribute
     ? {
         name: attribute.name,
@@ -15,6 +13,20 @@ const initialFormFor = (attribute, categories) => (attribute
         options: attribute.options?.length ? attribute.options.map((o) => o.label) : [''],
     }
     : { name: '', description: '', categoryId: categories[0]?.id ?? '', type: 'STRING', options: [''] })
+
+const buildAttributePayload = (form, isEdit) => {
+    const payload = { name: form.name.trim(), description: form.description.trim() || null, categoryId: form.categoryId }
+    if (!isEdit) payload.type = form.type
+    if (form.type === 'SELECT') payload.options = form.options.map((o) => o.trim()).filter(Boolean)
+    return payload
+}
+
+const OptionRow = ({ index, value, onChange, onRemove, disabled, t }) => (
+    <div className="d-flex gap-2 mb-2">
+        <Form.Control value={value} onChange={onChange} placeholder={t('attributes.form.optionPlaceholder', { n: index + 1 })} />
+        <Button variant="outline-danger" type="button" disabled={disabled} onClick={onRemove}>&times;</Button>
+    </div>
+)
 
 const AttributeFormModal = ({ show, onClose, onSubmit, categories, attribute, error }) => {
     const { t } = useTranslation()
@@ -33,18 +45,7 @@ const AttributeFormModal = ({ show, onClose, onSubmit, categories, attribute, er
 
     const handleSubmit = (e) => {
         e.preventDefault()
-        const payload = {
-            name: form.name.trim(),
-            description: form.description.trim() || null,
-            categoryId: form.categoryId,
-        }
-        if (!isEdit) {
-            payload.type = form.type
-        }
-        if (form.type === 'SELECT') {
-            payload.options = form.options.map((o) => o.trim()).filter(Boolean)
-        }
-        onSubmit(payload)
+        onSubmit(buildAttributePayload(form, isEdit))
     }
 
     return (
@@ -108,21 +109,15 @@ const AttributeFormModal = ({ show, onClose, onSubmit, categories, attribute, er
                         <Form.Group className="mb-3">
                             <Form.Label>{t('attributes.form.options')}</Form.Label>
                             {form.options.map((option, index) => (
-                                <div className="d-flex gap-2 mb-2" key={index}>
-                                    <Form.Control
-                                        value={option}
-                                        onChange={(e) => setOption(index, e.target.value)}
-                                        placeholder={t('attributes.form.optionPlaceholder', { n: index + 1 })}
-                                    />
-                                    <Button
-                                        variant="outline-danger"
-                                        type="button"
-                                        disabled={form.options.length <= 1}
-                                        onClick={() => removeOption(index)}
-                                    >
-                                        &times;
-                                    </Button>
-                                </div>
+                                <OptionRow
+                                    key={index}
+                                    index={index}
+                                    value={option}
+                                    onChange={(e) => setOption(index, e.target.value)}
+                                    onRemove={() => removeOption(index)}
+                                    disabled={form.options.length <= 1}
+                                    t={t}
+                                />
                             ))}
                             <Button variant="outline-secondary" size="sm" type="button" onClick={addOption}>
                                 {t('attributes.form.addOption')}

@@ -7,6 +7,64 @@ import { usePreferences } from '../../context/preferences-context.js'
 import { getNavItems } from './navConfig.js'
 import { formatName } from '../../lib/formatName.js'
 
+const ThemeToggle = ({ theme, setTheme, t }) => (
+    <button
+        type="button"
+        className="btn btn-outline-secondary btn-sm"
+        aria-label={t('header.toggleTheme')}
+        onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+    >
+        {theme === 'dark' ? '☀️' : '🌙'}
+    </button>
+)
+
+const LanguageToggle = ({ language, setLanguage, t }) => (
+    <div className="btn-group" role="group" aria-label={t('header.toggleTheme')}>
+        <button
+            type="button"
+            className={`btn btn-sm ${language === 'en' ? 'btn-secondary' : 'btn-outline-secondary'}`}
+            onClick={() => setLanguage('en')}
+        >
+            EN
+        </button>
+        <button
+            type="button"
+            className={`btn btn-sm ${language === 'ru' ? 'btn-secondary' : 'btn-outline-secondary'}`}
+            onClick={() => setLanguage('ru')}
+        >
+            RU
+        </button>
+    </div>
+)
+
+const UserMenu = ({ user, open, onToggle, onLogout, menuRef, t }) => (
+    <div className="dropdown position-relative" ref={menuRef}>
+        <button
+            type="button"
+            className="btn btn-outline-secondary btn-sm dropdown-toggle"
+            id="user-menu"
+            aria-expanded={open}
+            onClick={onToggle}
+        >
+            {formatName(user)}
+        </button>
+        <ul className={`dropdown-menu dropdown-menu-end${open ? ' show' : ''}`} aria-labelledby="user-menu">
+            <li>
+                <button type="button" className="dropdown-item" onClick={onLogout}>
+                    {t('header.logout')}
+                </button>
+            </li>
+        </ul>
+    </div>
+)
+
+const GuestLinks = ({ t }) => (
+    <>
+        <Nav.Link as={Link} to="/login">{t('header.login')}</Nav.Link>
+        <Nav.Link as={Link} to="/register">{t('header.register')}</Nav.Link>
+    </>
+)
+
 const AppLayout = () => {
     const { t } = useTranslation()
     const { user, logout } = useAuth()
@@ -68,59 +126,19 @@ const AppLayout = () => {
                         </Form>
 
                         <div className="d-flex align-items-center gap-2 mb-2 mb-lg-0">
-                            <button
-                                type="button"
-                                className="btn btn-outline-secondary btn-sm"
-                                aria-label={t('header.toggleTheme')}
-                                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                            >
-                                {theme === 'dark' ? '☀️' : '🌙'}
-                            </button>
-
-                            <div className="btn-group" role="group" aria-label={t('header.toggleTheme')}>
-                                <button
-                                    type="button"
-                                    className={`btn btn-sm ${language === 'en' ? 'btn-secondary' : 'btn-outline-secondary'}`}
-                                    onClick={() => setLanguage('en')}
-                                >
-                                    EN
-                                </button>
-                                <button
-                                    type="button"
-                                    className={`btn btn-sm ${language === 'ru' ? 'btn-secondary' : 'btn-outline-secondary'}`}
-                                    onClick={() => setLanguage('ru')}
-                                >
-                                    RU
-                                </button>
-                            </div>
-
+                            <ThemeToggle theme={theme} setTheme={setTheme} t={t} />
+                            <LanguageToggle language={language} setLanguage={setLanguage} t={t} />
                             {user ? (
-                                <div className="dropdown position-relative" ref={userMenuRef}>
-                                    <button
-                                        type="button"
-                                        className="btn btn-outline-secondary btn-sm dropdown-toggle"
-                                        id="user-menu"
-                                        aria-expanded={userMenuOpen}
-                                        onClick={() => setUserMenuOpen((open) => !open)}
-                                    >
-                                        {formatName(user)}
-                                    </button>
-                                    <ul
-                                        className={`dropdown-menu dropdown-menu-end${userMenuOpen ? ' show' : ''}`}
-                                        aria-labelledby="user-menu"
-                                    >
-                                        <li>
-                                            <button type="button" className="dropdown-item" onClick={handleLogout}>
-                                                {t('header.logout')}
-                                            </button>
-                                        </li>
-                                    </ul>
-                                </div>
+                                <UserMenu
+                                    user={user}
+                                    open={userMenuOpen}
+                                    onToggle={() => setUserMenuOpen((open) => !open)}
+                                    onLogout={handleLogout}
+                                    menuRef={userMenuRef}
+                                    t={t}
+                                />
                             ) : (
-                                <>
-                                    <Nav.Link as={Link} to="/login">{t('header.login')}</Nav.Link>
-                                    <Nav.Link as={Link} to="/register">{t('header.register')}</Nav.Link>
-                                </>
+                                <GuestLinks t={t} />
                             )}
                         </div>
                     </Navbar.Collapse>

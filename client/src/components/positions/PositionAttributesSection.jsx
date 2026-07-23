@@ -3,54 +3,32 @@ import { Button, Modal, Table } from 'react-bootstrap'
 import { useTranslation } from 'react-i18next'
 import AttributeList from '../attributes/AttributeList.jsx'
 import AttributeTypeBadge from '../attributes/AttributeTypeBadge.jsx'
+import { useIdSelection } from '../../hooks/useIdSelection.js'
+import { useObjectSelection } from '../../hooks/useObjectSelection.js'
 
-// Manages a position's PositionAttribute links: table + Add/Remove toolbar (no row buttons),
-// the "add" modal reuses AttributeList in picker mode exactly like InformationSection.jsx does
-// for candidate profiles.
 const PositionAttributesSection = ({ attributes, onSave, disabled }) => {
     const { t } = useTranslation()
-    const [selectedIds, setSelectedIds] = useState([])
+    const selection = useIdSelection()
+    const picker = useObjectSelection()
     const [showPicker, setShowPicker] = useState(false)
-    const [pickerAttrs, setPickerAttrs] = useState([])
 
     const existingIds = attributes.map((a) => a.attributeId)
 
-    const togglePickerAttr = (attr) => {
-        setPickerAttrs((prev) => (
-            prev.some((a) => a.id === attr.id) ? prev.filter((a) => a.id !== attr.id) : [...prev, attr]
-        ))
-    }
-
-    const togglePickerAll = (attrs, selectAll) => {
-        setPickerAttrs((prev) => {
-            if (selectAll) {
-                const existing = new Set(prev.map((a) => a.id))
-                return [...prev, ...attrs.filter((a) => !existing.has(a.id))]
-            }
-            const removed = new Set(attrs.map((a) => a.id))
-            return prev.filter((a) => !removed.has(a.id))
-        })
-    }
-
     const closePicker = () => {
         setShowPicker(false)
-        setPickerAttrs([])
+        picker.clear()
     }
 
     const handleAdd = async () => {
-        const nextIds = [...existingIds, ...pickerAttrs.map((a) => a.id)]
+        const nextIds = [...existingIds, ...picker.items.map((a) => a.id)]
         await onSave(nextIds)
         closePicker()
     }
 
     const handleRemove = async () => {
-        const nextIds = existingIds.filter((id) => !selectedIds.includes(id))
+        const nextIds = existingIds.filter((id) => !selection.ids.includes(id))
         await onSave(nextIds)
-        setSelectedIds([])
-    }
-
-    const toggleSelected = (attributeId) => {
-        setSelectedIds((prev) => (prev.includes(attributeId) ? prev.filter((id) => id !== attributeId) : [...prev, attributeId]))
+        selection.setIds([])
     }
 
     return (
@@ -60,12 +38,7 @@ const PositionAttributesSection = ({ attributes, onSave, disabled }) => {
                     <Button variant="primary" size="sm" onClick={() => setShowPicker(true)}>
                         {t('positions.attributesSection.add')}
                     </Button>
-                    <Button
-                        variant="outline-danger"
-                        size="sm"
-                        disabled={selectedIds.length === 0}
-                        onClick={handleRemove}
-                    >
+                    <Button variant="outline-danger" size="sm" disabled={selection.ids.length === 0} onClick={handleRemove}>
                         {t('positions.attributesSection.remove')}
                     </Button>
                 </div>
@@ -87,17 +60,17 @@ const PositionAttributesSection = ({ attributes, onSave, disabled }) => {
                         {attributes.map((link) => (
                             <tr
                                 key={link.attributeId}
-                                className={!disabled && selectedIds.includes(link.attributeId) ? 'table-active' : ''}
+                                className={!disabled && selection.ids.includes(link.attributeId) ? 'table-active' : ''}
                                 style={disabled ? undefined : { cursor: 'pointer' }}
-                                onClick={disabled ? undefined : () => toggleSelected(link.attributeId)}
+                                onClick={disabled ? undefined : () => selection.toggle(link.attributeId)}
                             >
                                 {!disabled && (
                                     <td onClick={(e) => e.stopPropagation()}>
                                         <input
                                             type="checkbox"
                                             className="form-check-input"
-                                            checked={selectedIds.includes(link.attributeId)}
-                                            onChange={() => toggleSelected(link.attributeId)}
+                                            checked={selection.ids.includes(link.attributeId)}
+                                            onChange={() => selection.toggle(link.attributeId)}
                                         />
                                     </td>
                                 )}
@@ -116,9 +89,9 @@ const PositionAttributesSection = ({ attributes, onSave, disabled }) => {
                 </Modal.Header>
                 <Modal.Body>
                     <AttributeList
-                        selectedIds={pickerAttrs.map((a) => a.id)}
-                        onToggleRow={togglePickerAttr}
-                        onToggleAll={togglePickerAll}
+                        selectedIds={picker.items.map((a) => a.id)}
+                        onToggleRow={picker.toggle}
+                        onToggleAll={picker.toggleAll}
                         excludeIds={existingIds}
                     />
                 </Modal.Body>
@@ -126,7 +99,7 @@ const PositionAttributesSection = ({ attributes, onSave, disabled }) => {
                     <Button variant="secondary" onClick={closePicker}>
                         {t('positions.form.cancel')}
                     </Button>
-                    <Button variant="primary" disabled={pickerAttrs.length === 0} onClick={handleAdd}>
+                    <Button variant="primary" disabled={picker.items.length === 0} onClick={handleAdd}>
                         {t('positions.attributesSection.add')}
                     </Button>
                 </Modal.Footer>
