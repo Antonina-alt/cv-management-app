@@ -82,8 +82,8 @@ const PositionDetailPage = () => {
 
     return (
         <div>
-            <Button variant="link" className="px-0 mb-2" onClick={() => navigate('/positions')}>
-                &larr; {t('positions.title')}
+            <Button variant="link" className="px-0 mb-2" onClick={() => navigate(-1)}>
+                &larr; {t('common.back')}
             </Button>
 
             {banner && (
