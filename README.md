@@ -1,63 +1,54 @@
 # CV App — Resume Management Platform
 
-Веб-платформа для подбора персонала. Рекрутеры описывают **должности** (настраиваемые
-шаблоны резюме) на основе переиспользуемой **библиотеки атрибутов**; кандидаты ведут
-профиль, а резюме под конкретную должность **генерируется автоматически** из данных
-профиля и проектов.
+A web-based recruitment platform. Recruiters define **positions**—customizable resume templates—using a reusable **attribute library**. Candidates maintain their profiles, while a resume for a specific position is **generated automatically** from the candidate’s profile and project data.
 
-Три ключевые функции:
-1. **Библиотека атрибутов** — структурированные поля, определяются один раз, переиспользуются.
-2. **Должности** — шаблоны резюме с правилами доступа и фильтрами проектов.
-3. **Автогенерация резюме** — резюме «почти виртуальное»: контент собирается из атрибутов
-   и проектов кандидата, а не хранится копией.
+Three key features:
 
-## Стек
+1. **Attribute Library** — structured fields that are defined once and reused.
+2. **Positions** — resume templates with access rules and project filters.
+3. **Automatic Resume Generation** — resume content is assembled from the candidate’s attributes and projects instead of being stored as a separate copy.
 
-| Слой        | Технологии                                   |
-|-------------|----------------------------------------------|
-| Клиент      | React 19, Vite, Bootstrap                    |
-| Сервер      | Node.js (ESM), Express 5, Prisma 7 ORM       |
-| БД          | PostgreSQL                                   |
-| Файлы       | Azure Blob Storage (локально — Azurite)      |
-| Тесты       | Vitest, Supertest                            |
+## Tech Stack
 
-## Структура репозитория
+| Layer        | Technologies                                       |
+| ------------ | -------------------------------------------------- |
+| Client       | React 19, Vite, Bootstrap                          |
+| Server       | Node.js (ESM), Express 5, Prisma 7 ORM             |
+| Database     | PostgreSQL                                         |
+| File Storage | Azure Blob Storage (Azurite for local development) |
 
-```
+## Repository Structure
+
+```text
 client/            React SPA (Vite)
 server/            Express API + Prisma
-  prisma/          schema.prisma + миграции
-  routes/          HTTP-роуты
-  lib/prisma.js    единая точка доступа к БД
-spec/
-  requirements.md  ТЗ (источник истины)
-  architecture.md  архитектура и решения
-  tasks/           план: задачи + трекер прогресса
-docker-compose.yml Postgres + Azurite
+  prisma/          schema.prisma + migrations
+  routes/          HTTP routes
+  lib/prisma.js    centralized database access
+docker-compose.yml PostgreSQL + Azurite
 ```
 
-## Требования к окружению
+## Environment Requirements
 
-Для работы с проектом в консоли должны быть доступны:
+The following tools must be available in the command line environment:
 
-| Инструмент | Версия | Проверить | Зачем |
-|---|---|---|---|
-| **Node.js** | ≥ 20.19 (LTS) | `node -v` | Сервер (Express/Prisma) и клиент (Vite) |
-| **npm** | идёт в комплекте с Node.js | `npm -v` | Установка зависимостей, запуск скриптов |
-| **Docker** + **Docker Compose v2** | любая актуальная | `docker -v`, `docker compose version` | Инфраструктура: Postgres + Azurite |
-| **git** | любая актуальная | `git --version` | Контроль версий |
+| Tool                               | Version               | Verification Command                  | Purpose                                     |
+| ---------------------------------- | --------------------- | ------------------------------------- | ------------------------------------------- |
+| **Node.js**                        | ≥ 20.19 (LTS)         | `node -v`                             | Server (Express/Prisma) and client (Vite)   |
+| **npm**                            | Included with Node.js | `npm -v`                              | Installing dependencies and running scripts |
+| **Docker** + **Docker Compose v2** | Any recent version    | `docker -v`, `docker compose version` | Infrastructure: PostgreSQL + Azurite        |
+| **Git**                            | Any recent version    | `git --version`                       | Version control                             |
 
-Опционально, но пригодится для ручной проверки:
-- `psql` или Prisma Studio (`npx prisma studio`) — инспекция БД без GUI-клиента.
-- `az` (Azure CLI) — проверка блобов в Azurite (`az storage blob list ...`).
+Optional tools that may be useful for manual verification:
 
-Node.js без менеджера версий можно поставить с [nodejs.org](https://nodejs.org), либо через
-менеджер версий (nvm/volta/fnm) — важно, чтобы `node`/`npm` были доступны в PATH обычного
-терминала, а не только внутри IDE.
+* `psql` or Prisma Studio (`npx prisma studio`) — inspect the database without a separate GUI client.
+* `az` (Azure CLI) — inspect blobs stored in Azurite (`az storage blob list ...`).
 
-## Проверка среды
+Node.js can be installed directly from [nodejs.org](https://nodejs.org) or through a version manager such as nvm, Volta, or fnm. The important requirement is that `node` and `npm` are available in the `PATH` of a regular terminal, not only inside the IDE.
 
-Перед началом работы проверь, что все инструменты установлены и доступны в PATH:
+## Environment Verification
+
+Before starting, verify that all required tools are installed and available in `PATH`:
 
 ```bash
 node -v              # >= v20.19
@@ -67,27 +58,26 @@ docker -v
 docker compose version
 ```
 
-Все команды должны отработать без `command not found`. Дополнительно можно проверить, что
-Docker-демон реально запущен (а не просто установлен):
+All commands should run without returning a `command not found` error.
+
+You can also verify that the Docker daemon is running, rather than merely installed:
 
 ```bash
 docker info > /dev/null && echo "Docker daemon OK"
 ```
 
+## Quick Start — Local Development
 
-## Быстрый старт (локальная разработка)
-
-Приложение (клиент и сервер) запускается **локально без Docker**. В Docker поднимается
-только инфраструктура — Postgres и Azurite.
+The application—the client and server—is run **locally without Docker**. Docker is used only for the infrastructure components: PostgreSQL and Azurite.
 
 ```bash
-# 1. Инфраструктура
+# 1. Start the infrastructure
 docker compose up -d
 
-# 2. Переменные окружения
-cp .env.example server/.env        # заполнить значениями
+# 2. Configure environment variables
+cp .env.example server/.env        # fill in the required values
 
-# 3. Сервер
+# 3. Start the server
 cd server
 npm install
 npx prisma migrate dev
@@ -95,36 +85,10 @@ npx prisma generate
 npm run dev                         # http://localhost:5050
 curl http://localhost:5050/api/health   # {"status":"ok"}
 
-# 4. Клиент (в другом терминале)
+# 4. Start the client in another terminal
 cd client
 npm install
 npm run dev                         # http://localhost:5173
 ```
 
-> `PORT` по умолчанию `5050` (не `5000`): на macOS порт 5000 обычно занят системным
-> AirPlay Receiver. При необходимости смени порт в `server/.env`.
-
-### Тесты
-
-```bash
-cd server && npm test    # Vitest + Supertest, включая smoke-тест GET /api/health
-cd client && npm test    # Vitest + Testing Library
-```
-
-### MCP для сквозной проверки
-
-`.mcp.json` в корне поднимает Playwright MCP (браузер) и Postgres MCP (read-only доступ к
-БД из `DATABASE_URL`) — см. [spec/architecture.md](spec/architecture.md#7-mcp-серверы-для-сквозной-проверки-verification).
-
-## Разработка по спецификации
-
-Проект ведётся spec-driven: каждая фича — отдельная вертикальная задача в `spec/tasks/`
-с критериями приёмки и разделом проверки. Актуальный статус — в
-[spec/tasks/00-progress.md](spec/tasks/00-progress.md). Правила и конвенции для
-ассистента — в [CLAUDE.md](CLAUDE.md).
-
-## Статус
-
-Окружение настроено (задача 01): Docker-инфраструктура, миграции, `GET /api/health`,
-тест-раннеры клиента и сервера, MCP для сквозной проверки. Дальше — по задачам
-`spec/tasks/`, начиная с аутентификации (задача 02).
+> The default value of `PORT` is `5050`. To use a different port, update it in `server/.env`.
