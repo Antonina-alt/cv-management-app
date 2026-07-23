@@ -7,6 +7,7 @@ import 'datatables.net-bs5/css/dataTables.bootstrap5.css'
 import { listAttributeCategories, listAttributes } from '../../api/attributes.js'
 import { getRecentAttributeIds } from '../../lib/recentAttributes.js'
 import { useAsyncData } from '../../hooks/useAsyncData.js'
+import { wireCheckboxCell } from '../../lib/dataTableCheckbox.js'
 import AttributeTypeBadge from './AttributeTypeBadge.jsx'
 
 // eslint-disable-next-line react-hooks/rules-of-hooks -- DataTables static registration, not a React hook
@@ -87,34 +88,12 @@ const AttributeList = ({ selectedIds = [], onToggleRow, onToggleAll, refreshToke
         createdRow: (row, data) => {
             row.style.cursor = onToggleRowRef.current ? 'pointer' : ''
             row.onclick = () => onToggleRowRef.current?.(data)
-
-            const checkboxCell = row.cells[0]
-            checkboxCell.style.width = '1px'
-            checkboxCell.style.whiteSpace = 'nowrap'
-            const checkbox = document.createElement('input')
-            checkbox.type = 'checkbox'
-            checkbox.className = 'form-check-input'
-            checkbox.setAttribute('aria-label', data.name)
-            checkbox.onclick = (e) => {
-                e.stopPropagation()
-                onToggleRowRef.current?.(data)
-            }
-            checkboxCell.replaceChildren(checkbox)
+            wireCheckboxCell(row.cells[0], data.name, () => onToggleRowRef.current?.(data))
         },
         initComplete: function initComplete() {
             const headerCell = this.api().table().header().querySelector('th')
-            headerCell.style.width = '1px'
-            headerCell.style.whiteSpace = 'nowrap'
-            const checkbox = document.createElement('input')
-            checkbox.type = 'checkbox'
-            checkbox.className = 'form-check-input'
-            checkbox.setAttribute('aria-label', t('attributes.selectAll'))
-            checkbox.onclick = (e) => {
-                e.stopPropagation()
-                onToggleAllRef.current?.(attributesRef.current, e.target.checked)
-            }
-            headerCell.replaceChildren(checkbox)
-            headerCheckboxRef.current = checkbox
+            wireCheckboxCell(headerCell, t('attributes.selectAll'), (checked) => onToggleAllRef.current?.(attributesRef.current, checked))
+            headerCheckboxRef.current = headerCell.querySelector('input')
         },
     }), [t])
 

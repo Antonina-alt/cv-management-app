@@ -7,18 +7,20 @@ import 'datatables.net-bs5/css/dataTables.bootstrap5.css'
 import ProjectFormModal from './ProjectFormModal.jsx'
 import { createProject, deleteProject, updateProject } from '../../api/profile.js'
 import { ConflictError } from '../../api/http.js'
+import { useIdSelection } from '../../hooks/useIdSelection.js'
+import { wireCheckboxCell } from '../../lib/dataTableCheckbox.js'
 
 // eslint-disable-next-line react-hooks/rules-of-hooks -- DataTables static registration, not a React hook
 DataTable.use(DT)
 
 const formatDate = (value) => (value ? new Date(value).toLocaleDateString() : '')
+const formatPeriod = (row) => `${formatDate(row.startDate)} – ${formatDate(row.endDate)}`
+const formatTags = (row) => row.tags.map((tag) => tag.tag.name).join(', ')
 
-// Projects are a normal modal-form CRUD (create/edit/delete), same pattern as the attribute
-// library's manage page — no per-row buttons, a selection column + toolbar instead.
 const ProjectsSection = ({ candidateId, initialProjects, onConflict }) => {
     const { t } = useTranslation()
     const [projects, setProjects] = useState(initialProjects)
-    const [selectedIds, setSelectedIds] = useState([])
+    const selection = useIdSelection()
     const [modal, setModal] = useState(null)
     const [formError, setFormError] = useState(null)
     const [banner, setBanner] = useState(null)
@@ -28,27 +30,12 @@ const ProjectsSection = ({ candidateId, initialProjects, onConflict }) => {
     const onToggleAllRef = useRef(null)
     const projectsRef = useRef(projects)
 
-    const selected = projects.filter((p) => selectedIds.includes(p.id))
+    const selected = projects.filter((p) => selection.ids.includes(p.id))
     const singleSelected = selected.length === 1 ? selected[0] : null
 
-    const toggleRow = (id) => {
-        setSelectedIds((prev) => (prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]))
-    }
-
-    const toggleAll = (rows, selectAll) => {
-        setSelectedIds((prev) => {
-            if (selectAll) {
-                const existing = new Set(prev)
-                return [...prev, ...rows.map((p) => p.id).filter((id) => !existing.has(id))]
-            }
-            const removed = new Set(rows.map((p) => p.id))
-            return prev.filter((id) => !removed.has(id))
-        })
-    }
-
     useEffect(() => {
-        onToggleRowRef.current = (row) => toggleRow(row.id)
-        onToggleAllRef.current = toggleAll
+        onToggleRowRef.current = (row) => selection.toggle(row.id)
+        onToggleAllRef.current = selection.toggleAll
         projectsRef.current = projects
     })
 
@@ -72,12 +59,12 @@ const ProjectsSection = ({ candidateId, initialProjects, onConflict }) => {
         try {
             const updated = await updateProject(candidateId, singleSelected.id, { ...payload, version: singleSelected.version })
             setProjects((prev) => prev.map((p) => (p.id === updated.id ? updated : p)))
-            setSelectedIds([])
+            selection.setIds([])
             setBanner(null)
             closeModal()
         } catch (err) {
             if (err instanceof ConflictError) {
-                setSelectedIds([])
+                selection.setIds([])
                 closeModal()
                 onConflict?.()
             } else {
@@ -89,16 +76,13 @@ const ProjectsSection = ({ candidateId, initialProjects, onConflict }) => {
     const handleDelete = async () => {
         try {
             await Promise.all(selected.map((p) => deleteProject(candidateId, p.id, p.version)))
-            setProjects((prev) => prev.filter((p) => !selectedIds.includes(p.id)))
+            setProjects((prev) => prev.filter((p) => !selection.ids.includes(p.id)))
             setBanner(null)
         } catch (err) {
-            if (err instanceof ConflictError) {
-                onConflict?.()
-            } else {
-                setBanner(err.message)
-            }
+            if (err instanceof ConflictError) onConflict?.()
+            else setBanner(err.message)
         }
-        setSelectedIds([])
+        selection.setIds([])
         closeModal()
     }
 
@@ -111,11 +95,9 @@ const ProjectsSection = ({ candidateId, initialProjects, onConflict }) => {
     ], [t])
 
     const slots = useMemo(() => ({
-        2: (data, row) => <>{formatDate(row.startDate)} – {formatDate(row.endDate)}</>,
-        3: (data, row) => (
-            <span className="text-truncate d-inline-block" style={{ maxWidth: 320 }}>{row.description}</span>
-        ),
-        4: (data, row) => <>{row.tags.map((tag) => tag.tag.name).join(', ')}</>,
+        2: (data, row) => <>{formatPeriod(row)}</>,
+        3: (data, row) => <span className="text-truncate d-inline-block" style={{ maxWidth: 320 }}>{row.description}</span>,
+        4: (data, row) => <>{formatTags(row)}</>,
     }), [])
 
     const options = useMemo(() => ({
@@ -125,34 +107,12 @@ const ProjectsSection = ({ candidateId, initialProjects, onConflict }) => {
         createdRow: (row, data) => {
             row.style.cursor = 'pointer'
             row.onclick = () => onToggleRowRef.current?.(data)
-
-            const checkboxCell = row.cells[0]
-            checkboxCell.style.width = '1px'
-            checkboxCell.style.whiteSpace = 'nowrap'
-            const checkbox = document.createElement('input')
-            checkbox.type = 'checkbox'
-            checkbox.className = 'form-check-input'
-            checkbox.setAttribute('aria-label', data.title)
-            checkbox.onclick = (e) => {
-                e.stopPropagation()
-                onToggleRowRef.current?.(data)
-            }
-            checkboxCell.replaceChildren(checkbox)
+            wireCheckboxCell(row.cells[0], data.title, () => onToggleRowRef.current?.(data))
         },
         initComplete: function initComplete() {
             const headerCell = this.api().table().header().querySelector('th')
-            headerCell.style.width = '1px'
-            headerCell.style.whiteSpace = 'nowrap'
-            const checkbox = document.createElement('input')
-            checkbox.type = 'checkbox'
-            checkbox.className = 'form-check-input'
-            checkbox.setAttribute('aria-label', t('attributes.selectAll'))
-            checkbox.onclick = (e) => {
-                e.stopPropagation()
-                onToggleAllRef.current?.(projectsRef.current, e.target.checked)
-            }
-            headerCell.replaceChildren(checkbox)
-            headerCheckboxRef.current = checkbox
+            wireCheckboxCell(headerCell, t('attributes.selectAll'), (checked) => onToggleAllRef.current?.(projectsRef.current, checked))
+            headerCheckboxRef.current = headerCell.querySelector('input')
         },
     }), [t])
 
@@ -162,7 +122,7 @@ const ProjectsSection = ({ candidateId, initialProjects, onConflict }) => {
         api.rows().every(function syncSelected() {
             const node = this.node()
             if (!node) return
-            const isSelected = selectedIds.includes(this.data().id)
+            const isSelected = selection.ids.includes(this.data().id)
             node.classList.toggle('table-active', isSelected)
             const checkbox = node.querySelector('input[type="checkbox"]')
             if (checkbox) checkbox.checked = isSelected
@@ -170,11 +130,11 @@ const ProjectsSection = ({ candidateId, initialProjects, onConflict }) => {
 
         const headerCheckbox = headerCheckboxRef.current
         if (headerCheckbox) {
-            const selectedCount = projects.filter((p) => selectedIds.includes(p.id)).length
+            const selectedCount = projects.filter((p) => selection.ids.includes(p.id)).length
             headerCheckbox.checked = projects.length > 0 && selectedCount === projects.length
             headerCheckbox.indeterminate = selectedCount > 0 && selectedCount < projects.length
         }
-    }, [selectedIds, projects])
+    }, [selection.ids, projects])
 
     return (
         <div>

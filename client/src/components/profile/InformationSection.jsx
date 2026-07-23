@@ -8,14 +8,14 @@ import AttributeList from '../attributes/AttributeList.jsx'
 import AttributeValueField from './AttributeValueField.jsx'
 import { createAttributeValue, deleteAttributeValue, updateAttributeValue } from '../../api/profile.js'
 import { ConflictError } from '../../api/http.js'
+import { useIdSelection } from '../../hooks/useIdSelection.js'
+import { wireCheckboxCell } from '../../lib/dataTableCheckbox.js'
+import { pickValueFields } from '../../lib/attributeValueFields.js'
+import { useObjectSelection } from '../../hooks/useObjectSelection.js'
 
 // eslint-disable-next-line react-hooks/rules-of-hooks -- DataTables static registration, not a React hook
 DataTable.use(DT)
 
-// Owns its own edit state, initialised once from the row it was mounted with. This keeps
-// keystrokes from touching InformationSection's `values` (and therefore the DataTable's `data`
-// prop) on every change — that array only changes on add/remove, so typing never triggers a
-// full table redraw/refocus.
 const AttributeValueCell = ({ value, attribute, onSave }) => {
     const [local, setLocal] = useState(value)
 
@@ -33,8 +33,8 @@ const AttributeValueCell = ({ value, attribute, onSave }) => {
 const InformationSection = ({ candidateId, initialValues, autosave, onConflict }) => {
     const { t } = useTranslation()
     const [values, setValues] = useState(initialValues)
-    const [selectedIds, setSelectedIds] = useState([])
-    const [pickerAttrs, setPickerAttrs] = useState([])
+    const selection = useIdSelection()
+    const picker = useObjectSelection()
     const [showPicker, setShowPicker] = useState(false)
     const [banner, setBanner] = useState(null)
     const dtRef = useRef(null)
@@ -46,77 +46,35 @@ const InformationSection = ({ candidateId, initialValues, autosave, onConflict }
 
     const existingAttributeIds = values.map((v) => v.attributeId)
 
-    const toggleRow = (id) => {
-        setSelectedIds((prev) => (prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]))
-    }
-
-    const toggleAll = (rows, selectAll) => {
-        setSelectedIds((prev) => {
-            if (selectAll) {
-                const existing = new Set(prev)
-                return [...prev, ...rows.map((v) => v.id).filter((id) => !existing.has(id))]
-            }
-            const removed = new Set(rows.map((v) => v.id))
-            return prev.filter((id) => !removed.has(id))
-        })
-    }
-
     useEffect(() => {
-        onToggleRowRef.current = (row) => toggleRow(row.id)
-        onToggleAllRef.current = toggleAll
+        onToggleRowRef.current = (row) => selection.toggle(row.id)
+        onToggleAllRef.current = selection.toggleAll
         valuesRef.current = values
     })
 
     const flushValue = async (valueId, updated) => {
         try {
             const saved = await updateAttributeValue(candidateId, valueId, {
-                stringValue: updated.stringValue,
-                numberValue: updated.numberValue,
-                booleanValue: updated.booleanValue,
-                dateValue: updated.dateValue,
-                dateFrom: updated.dateFrom,
-                dateTo: updated.dateTo,
-                imageUrl: updated.imageUrl,
-                selectedOptionId: updated.selectedOptionId,
+                ...pickValueFields(updated),
                 version: versionsRef.current.get(valueId),
             })
             versionsRef.current.set(valueId, saved.version)
             setBanner(null)
         } catch (err) {
-            if (err instanceof ConflictError) {
-                onConflict?.()
-            } else {
-                setBanner(err.message)
-            }
+            if (err instanceof ConflictError) onConflict?.()
+            else setBanner(err.message)
         }
-    }
-
-    const togglePickerAttr = (attr) => {
-        setPickerAttrs((prev) => (
-            prev.some((a) => a.id === attr.id) ? prev.filter((a) => a.id !== attr.id) : [...prev, attr]
-        ))
-    }
-
-    const togglePickerAll = (attrs, selectAll) => {
-        setPickerAttrs((prev) => {
-            if (selectAll) {
-                const existing = new Set(prev.map((a) => a.id))
-                return [...prev, ...attrs.filter((a) => !existing.has(a.id))]
-            }
-            const removed = new Set(attrs.map((a) => a.id))
-            return prev.filter((a) => !removed.has(a.id))
-        })
     }
 
     const closePicker = () => {
         setShowPicker(false)
-        setPickerAttrs([])
+        picker.clear()
     }
 
     const handleAddAttributes = async () => {
         try {
             const created = await Promise.all(
-                pickerAttrs.map((attr) => createAttributeValue(candidateId, { attributeId: attr.id })),
+                picker.items.map((attr) => createAttributeValue(candidateId, { attributeId: attr.id })),
             )
             created.forEach((v) => versionsRef.current.set(v.id, v.version))
             setValues((prev) => [...prev, ...created])
@@ -129,20 +87,17 @@ const InformationSection = ({ candidateId, initialValues, autosave, onConflict }
     }
 
     const handleRemoveSelected = async () => {
-        const toRemove = values.filter((v) => selectedIds.includes(v.id))
+        const toRemove = values.filter((v) => selection.ids.includes(v.id))
         try {
             await Promise.all(toRemove.map((v) => deleteAttributeValue(candidateId, v.id, versionsRef.current.get(v.id))))
             toRemove.forEach((v) => versionsRef.current.delete(v.id))
-            setValues((prev) => prev.filter((v) => !selectedIds.includes(v.id)))
-            setSelectedIds([])
+            setValues((prev) => prev.filter((v) => !selection.ids.includes(v.id)))
+            selection.setIds([])
             setBanner(null)
         } catch (err) {
-            if (err instanceof ConflictError) {
-                onConflict?.()
-            } else {
-                setBanner(err.message)
-            }
-            setSelectedIds([])
+            if (err instanceof ConflictError) onConflict?.()
+            else setBanner(err.message)
+            selection.setIds([])
         }
     }
 
@@ -169,33 +124,12 @@ const InformationSection = ({ candidateId, initialValues, autosave, onConflict }
         autoWidth: false,
         language: { emptyTable: t('profile.info.empty') },
         createdRow: (row, data) => {
-            const checkboxCell = row.cells[0]
-            checkboxCell.style.width = '1px'
-            checkboxCell.style.whiteSpace = 'nowrap'
-            const checkbox = document.createElement('input')
-            checkbox.type = 'checkbox'
-            checkbox.className = 'form-check-input'
-            checkbox.setAttribute('aria-label', data.attribute.name)
-            checkbox.onclick = (e) => {
-                e.stopPropagation()
-                onToggleRowRef.current?.(data)
-            }
-            checkboxCell.replaceChildren(checkbox)
+            wireCheckboxCell(row.cells[0], data.attribute.name, () => onToggleRowRef.current?.(data))
         },
         initComplete: function initComplete() {
             const headerCell = this.api().table().header().querySelector('th')
-            headerCell.style.width = '1px'
-            headerCell.style.whiteSpace = 'nowrap'
-            const checkbox = document.createElement('input')
-            checkbox.type = 'checkbox'
-            checkbox.className = 'form-check-input'
-            checkbox.setAttribute('aria-label', t('attributes.selectAll'))
-            checkbox.onclick = (e) => {
-                e.stopPropagation()
-                onToggleAllRef.current?.(valuesRef.current, e.target.checked)
-            }
-            headerCell.replaceChildren(checkbox)
-            headerCheckboxRef.current = checkbox
+            wireCheckboxCell(headerCell, t('attributes.selectAll'), (checked) => onToggleAllRef.current?.(valuesRef.current, checked))
+            headerCheckboxRef.current = headerCell.querySelector('input')
         },
     }), [t])
 
@@ -205,7 +139,7 @@ const InformationSection = ({ candidateId, initialValues, autosave, onConflict }
         api.rows().every(function syncSelected() {
             const node = this.node()
             if (!node) return
-            const isSelected = selectedIds.includes(this.data().id)
+            const isSelected = selection.ids.includes(this.data().id)
             node.classList.toggle('table-active', isSelected)
             const checkbox = node.querySelector('input[type="checkbox"]')
             if (checkbox) checkbox.checked = isSelected
@@ -213,11 +147,11 @@ const InformationSection = ({ candidateId, initialValues, autosave, onConflict }
 
         const headerCheckbox = headerCheckboxRef.current
         if (headerCheckbox) {
-            const selectedCount = values.filter((v) => selectedIds.includes(v.id)).length
+            const selectedCount = values.filter((v) => selection.ids.includes(v.id)).length
             headerCheckbox.checked = values.length > 0 && selectedCount === values.length
             headerCheckbox.indeterminate = selectedCount > 0 && selectedCount < values.length
         }
-    }, [selectedIds, values])
+    }, [selection.ids, values])
 
     return (
         <div>
@@ -232,7 +166,7 @@ const InformationSection = ({ candidateId, initialValues, autosave, onConflict }
                 <Button variant="primary" onClick={() => setShowPicker(true)}>
                     {t('profile.info.add')}
                 </Button>
-                <Button variant="outline-danger" disabled={selectedIds.length === 0} onClick={handleRemoveSelected}>
+                <Button variant="outline-danger" disabled={selection.ids.length === 0} onClick={handleRemoveSelected}>
                     {t('profile.info.remove')}
                 </Button>
             </div>
@@ -252,9 +186,9 @@ const InformationSection = ({ candidateId, initialValues, autosave, onConflict }
                 </Modal.Header>
                 <Modal.Body>
                     <AttributeList
-                        selectedIds={pickerAttrs.map((a) => a.id)}
-                        onToggleRow={togglePickerAttr}
-                        onToggleAll={togglePickerAll}
+                        selectedIds={picker.items.map((a) => a.id)}
+                        onToggleRow={picker.toggle}
+                        onToggleAll={picker.toggleAll}
                         excludeIds={existingAttributeIds}
                         excludeSystem
                     />
@@ -263,7 +197,7 @@ const InformationSection = ({ candidateId, initialValues, autosave, onConflict }
                     <Button variant="secondary" onClick={closePicker}>
                         {t('profile.info.cancel')}
                     </Button>
-                    <Button variant="primary" disabled={pickerAttrs.length === 0} onClick={handleAddAttributes}>
+                    <Button variant="primary" disabled={picker.items.length === 0} onClick={handleAddAttributes}>
                         {t('profile.info.add')}
                     </Button>
                 </Modal.Footer>

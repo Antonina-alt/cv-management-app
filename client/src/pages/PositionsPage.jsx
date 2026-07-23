@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { useAuth } from '../context/auth-context.js'
 import { createPosition, deletePosition, duplicatePosition } from '../api/positions.js'
 import { ConflictError } from '../api/http.js'
+import { useObjectSelection } from '../hooks/useObjectSelection.js'
 import PositionList from '../components/positions/PositionList.jsx'
 import PositionFormModal from '../components/positions/PositionFormModal.jsx'
 
@@ -13,34 +14,15 @@ const PositionsPage = () => {
     const { user } = useAuth()
     const navigate = useNavigate()
     const canManage = Boolean(user) && (user.roles.includes('RECRUITER') || user.roles.includes('ADMIN'))
+    const selection = useObjectSelection()
 
-    const [selected, setSelected] = useState([])
     const [refreshToken, setRefreshToken] = useState(0)
     const [modal, setModal] = useState(null) // 'create' | 'delete'
     const [formError, setFormError] = useState(null)
     const [banner, setBanner] = useState(null)
 
     const refresh = () => setRefreshToken((v) => v + 1)
-    const singleSelected = selected.length === 1 ? selected[0] : null
-
-    const handleToggleRow = (position) => {
-        setSelected((prev) => (
-            prev.some((p) => p.id === position.id)
-                ? prev.filter((p) => p.id !== position.id)
-                : [...prev, position]
-        ))
-    }
-
-    const handleToggleAll = (positions, selectAll) => {
-        setSelected((prev) => {
-            if (selectAll) {
-                const existingIds = new Set(prev.map((p) => p.id))
-                return [...prev, ...positions.filter((p) => !existingIds.has(p.id))]
-            }
-            const removedIds = new Set(positions.map((p) => p.id))
-            return prev.filter((p) => !removedIds.has(p.id))
-        })
-    }
+    const singleSelected = selection.items.length === 1 ? selection.items[0] : null
 
     const closeModal = () => {
         setModal(null)
@@ -63,25 +45,25 @@ const PositionsPage = () => {
     }
 
     const handleDuplicate = async () => {
-        if (selected.length === 0) return
+        if (selection.items.length === 0) return
         try {
-            await Promise.all(selected.map((p) => duplicatePosition(p.id)))
+            await Promise.all(selection.items.map((p) => duplicatePosition(p.id)))
             setBanner(null)
-            setSelected([])
-            refresh()
         } catch (err) {
             setBanner(err.message)
         }
+        selection.clear()
+        refresh()
     }
 
     const handleDeleteConfirm = async () => {
         try {
-            await Promise.all(selected.map((p) => deletePosition(p.id, p.version)))
+            await Promise.all(selection.items.map((p) => deletePosition(p.id, p.version)))
             setBanner(null)
         } catch (err) {
             setBanner(err instanceof ConflictError ? t('positions.conflict') : err.message)
         }
-        setSelected([])
+        selection.clear()
         closeModal()
         refresh()
     }
@@ -106,12 +88,12 @@ const PositionsPage = () => {
                     <Button variant="outline-primary" disabled={!singleSelected} onClick={handleOpen}>
                         {t('positions.toolbar.open')}
                     </Button>
-                    <Button variant="outline-primary" disabled={selected.length === 0} onClick={handleDuplicate}>
+                    <Button variant="outline-primary" disabled={selection.items.length === 0} onClick={handleDuplicate}>
                         {t('positions.toolbar.duplicate')}
                     </Button>
                     <Button
                         variant="outline-danger"
-                        disabled={selected.length === 0}
+                        disabled={selection.items.length === 0}
                         onClick={() => setModal('delete')}
                     >
                         {t('positions.toolbar.delete')}
@@ -120,9 +102,9 @@ const PositionsPage = () => {
             )}
 
             <PositionList
-                selectedIds={canManage ? selected.map((p) => p.id) : []}
-                onToggleRow={canManage ? handleToggleRow : undefined}
-                onToggleAll={canManage ? handleToggleAll : undefined}
+                selectedIds={canManage ? selection.items.map((p) => p.id) : []}
+                onToggleRow={canManage ? selection.toggle : undefined}
+                onToggleAll={canManage ? selection.toggleAll : undefined}
                 onRowClick={!canManage ? (position) => navigate(`/positions/${position.id}`) : undefined}
                 refreshToken={refreshToken}
             />
@@ -141,7 +123,7 @@ const PositionsPage = () => {
                     <Modal.Title>{t('positions.deleteConfirm.title')}</Modal.Title>
                 </Modal.Header>
                 <Modal.Body>
-                    {t('positions.deleteConfirm.body', { titles: selected.map((p) => p.title).join(', ') })}
+                    {t('positions.deleteConfirm.body', { titles: selection.items.map((p) => p.title).join(', ') })}
                 </Modal.Body>
                 <Modal.Footer>
                     <Button variant="secondary" onClick={closeModal}>

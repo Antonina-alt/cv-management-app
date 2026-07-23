@@ -11,6 +11,7 @@ import PositionAttributesSection from '../components/positions/PositionAttribute
 import PositionProjectFilterSection from '../components/positions/PositionProjectFilterSection.jsx'
 import PositionAccessRulesSection from '../components/positions/PositionAccessRulesSection.jsx'
 import PositionResumesTable from '../components/positions/PositionResumesTable.jsx'
+import AccessBadge from '../components/common/AccessBadge.jsx'
 
 const PositionDetailPage = () => {
     const { t } = useTranslation()
@@ -105,9 +106,7 @@ const PositionDetailPage = () => {
                                     .filter(Boolean)
                                     .join(' · ')}
                             </div>
-                            <span className={`badge ${position.isPublic ? 'text-bg-success' : 'text-bg-secondary'}`}>
-                                {t(position.isPublic ? 'positions.public' : 'positions.restricted')}
-                            </span>
+                            <AccessBadge isPublic={position.isPublic} />
                             {position.description && <p className="mt-3 mb-0">{position.description}</p>}
                         </div>
                         {canManage && (

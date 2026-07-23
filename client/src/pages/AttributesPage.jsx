@@ -4,13 +4,14 @@ import { useTranslation } from 'react-i18next'
 import { createAttribute, deleteAttribute, listAttributeCategories, updateAttribute } from '../api/attributes.js'
 import { ConflictError } from '../api/http.js'
 import { pushRecentAttributeId } from '../lib/recentAttributes.js'
+import { useObjectSelection } from '../hooks/useObjectSelection.js'
 import AttributeList from '../components/attributes/AttributeList.jsx'
 import AttributeFormModal from '../components/attributes/AttributeFormModal.jsx'
 
 const AttributesPage = () => {
     const { t } = useTranslation()
     const [categories, setCategories] = useState([])
-    const [selectedAttrs, setSelectedAttrs] = useState([])
+    const selection = useObjectSelection()
     const [refreshToken, setRefreshToken] = useState(0)
     const [modal, setModal] = useState(null) // 'create' | 'edit' | 'delete'
     const [formError, setFormError] = useState(null)
@@ -22,30 +23,16 @@ const AttributesPage = () => {
 
     const refresh = () => setRefreshToken((v) => v + 1)
 
+    const selectedAttrs = selection.items
     const selectedIds = selectedAttrs.map((a) => a.id)
     const singleSelected = selectedAttrs.length === 1 ? selectedAttrs[0] : null
     const canDelete = selectedAttrs.length > 0 && selectedAttrs.every((a) => !a.systemKey)
     const hasSystemSelected = selectedAttrs.some((a) => a.systemKey)
 
     const handleToggleRow = (attr) => {
-        setSelectedAttrs((prev) => (
-            prev.some((a) => a.id === attr.id)
-                ? prev.filter((a) => a.id !== attr.id)
-                : [...prev, attr]
-        ))
+        selection.toggle(attr)
         pushRecentAttributeId(attr.id)
         refresh()
-    }
-
-    const handleToggleAll = (attrs, selectAll) => {
-        setSelectedAttrs((prev) => {
-            if (selectAll) {
-                const existingIds = new Set(prev.map((a) => a.id))
-                return [...prev, ...attrs.filter((a) => !existingIds.has(a.id))]
-            }
-            const removedIds = new Set(attrs.map((a) => a.id))
-            return prev.filter((a) => !removedIds.has(a.id))
-        })
     }
 
     const closeModal = () => {
@@ -67,14 +54,14 @@ const AttributesPage = () => {
     const handleEditSubmit = async (payload) => {
         try {
             const updated = await updateAttribute(singleSelected.id, { ...payload, version: singleSelected.version })
-            setSelectedAttrs([updated])
+            selection.setItems([updated])
             setBanner(null)
             closeModal()
             refresh()
         } catch (err) {
             if (err instanceof ConflictError) {
                 setBanner(t('attributes.conflict'))
-                setSelectedAttrs([])
+                selection.clear()
                 closeModal()
                 refresh()
             } else {
@@ -87,19 +74,12 @@ const AttributesPage = () => {
         try {
             await Promise.all(selectedAttrs.map((a) => deleteAttribute(a.id, a.version)))
             setBanner(null)
-            setSelectedAttrs([])
-            closeModal()
-            refresh()
         } catch (err) {
-            if (err instanceof ConflictError) {
-                setBanner(t('attributes.conflict'))
-            } else {
-                setBanner(err.message)
-            }
-            setSelectedAttrs([])
-            closeModal()
-            refresh()
+            setBanner(err instanceof ConflictError ? t('attributes.conflict') : err.message)
         }
+        selection.clear()
+        closeModal()
+        refresh()
     }
 
     return (
@@ -134,7 +114,7 @@ const AttributesPage = () => {
             <AttributeList
                 selectedIds={selectedIds}
                 onToggleRow={handleToggleRow}
-                onToggleAll={handleToggleAll}
+                onToggleAll={selection.toggleAll}
                 refreshToken={refreshToken}
             />
 

@@ -5,6 +5,8 @@ import { useTranslation } from 'react-i18next'
 import { useAuth } from '../context/auth-context.js'
 import { setUserBlocked, deleteUser, assignRole, removeRole } from '../api/admin.js'
 import { ConflictError } from '../api/http.js'
+import { useObjectSelection } from '../hooks/useObjectSelection.js'
+import { formatName } from '../lib/formatName.js'
 import UserList from '../components/admin/UserList.jsx'
 import RoleModal from '../components/admin/RoleModal.jsx'
 
@@ -12,35 +14,16 @@ const AdminPage = () => {
     const { t } = useTranslation()
     const { user, refresh } = useAuth()
     const navigate = useNavigate()
+    const selection = useObjectSelection()
 
-    const [selected, setSelected] = useState([])
     const [refreshToken, setRefreshToken] = useState(0)
     const [modal, setModal] = useState(null) // 'delete' | 'roles'
     const [formError, setFormError] = useState(null)
     const [banner, setBanner] = useState(null)
 
     const refreshList = () => setRefreshToken((v) => v + 1)
-    const singleSelected = selected.length === 1 ? selected[0] : null
-    const selectionIncludesSelf = selected.some((u) => u.id === user.id)
-
-    const handleToggleRow = (row) => {
-        setSelected((prev) => (
-            prev.some((u) => u.id === row.id)
-                ? prev.filter((u) => u.id !== row.id)
-                : [...prev, row]
-        ))
-    }
-
-    const handleToggleAll = (rows, selectAll) => {
-        setSelected((prev) => {
-            if (selectAll) {
-                const existingIds = new Set(prev.map((u) => u.id))
-                return [...prev, ...rows.filter((u) => !existingIds.has(u.id))]
-            }
-            const removedIds = new Set(rows.map((u) => u.id))
-            return prev.filter((u) => !removedIds.has(u.id))
-        })
-    }
+    const singleSelected = selection.items.length === 1 ? selection.items[0] : null
+    const selectionIncludesSelf = selection.items.some((u) => u.id === user.id)
 
     const closeModal = () => {
         setModal(null)
@@ -51,39 +34,29 @@ const AdminPage = () => {
         if (singleSelected) navigate(`/profile/${singleSelected.id}`)
     }
 
-    const handleBlock = async () => {
-        const targets = selected.filter((u) => !u.isBlocked && u.id !== user.id)
+    const setBlockedForSelection = async (isBlocked) => {
+        const targets = isBlocked
+            ? selection.items.filter((u) => !u.isBlocked && u.id !== user.id)
+            : selection.items.filter((u) => u.isBlocked)
         try {
-            await Promise.all(targets.map((u) => setUserBlocked(u.id, true, u.version)))
+            await Promise.all(targets.map((u) => setUserBlocked(u.id, isBlocked, u.version)))
             setBanner(null)
         } catch (err) {
             setBanner(err instanceof ConflictError ? t('admin.conflict') : err.message)
         }
-        setSelected([])
-        refreshList()
-    }
-
-    const handleUnblock = async () => {
-        const targets = selected.filter((u) => u.isBlocked)
-        try {
-            await Promise.all(targets.map((u) => setUserBlocked(u.id, false, u.version)))
-            setBanner(null)
-        } catch (err) {
-            setBanner(err instanceof ConflictError ? t('admin.conflict') : err.message)
-        }
-        setSelected([])
+        selection.clear()
         refreshList()
     }
 
     const handleDeleteConfirm = async () => {
-        const targets = selected.filter((u) => u.id !== user.id)
+        const targets = selection.items.filter((u) => u.id !== user.id)
         try {
             await Promise.all(targets.map((u) => deleteUser(u.id, u.version)))
             setBanner(null)
         } catch (err) {
             setBanner(err instanceof ConflictError ? t('admin.conflict') : err.message)
         }
-        setSelected([])
+        selection.clear()
         closeModal()
         refreshList()
     }
@@ -96,7 +69,7 @@ const AdminPage = () => {
                 ...toRemove.map((role) => removeRole(singleSelected.id, role)),
             ])
             closeModal()
-            setSelected([])
+            selection.clear()
 
             if (singleSelected.id === user.id && toRemove.includes('ADMIN')) {
                 await refresh()
@@ -128,15 +101,15 @@ const AdminPage = () => {
                 </Button>
                 <Button
                     variant="outline-secondary"
-                    disabled={selected.length === 0 || selectionIncludesSelf || selected.every((u) => u.isBlocked)}
-                    onClick={handleBlock}
+                    disabled={selection.items.length === 0 || selectionIncludesSelf || selection.items.every((u) => u.isBlocked)}
+                    onClick={() => setBlockedForSelection(true)}
                 >
                     {t('admin.toolbar.block')}
                 </Button>
                 <Button
                     variant="outline-secondary"
-                    disabled={selected.length === 0 || selected.every((u) => !u.isBlocked)}
-                    onClick={handleUnblock}
+                    disabled={selection.items.length === 0 || selection.items.every((u) => !u.isBlocked)}
+                    onClick={() => setBlockedForSelection(false)}
                 >
                     {t('admin.toolbar.unblock')}
                 </Button>
@@ -145,7 +118,7 @@ const AdminPage = () => {
                 </Button>
                 <Button
                     variant="outline-danger"
-                    disabled={selected.length === 0 || selectionIncludesSelf}
+                    disabled={selection.items.length === 0 || selectionIncludesSelf}
                     onClick={() => setModal('delete')}
                 >
                     {t('admin.toolbar.delete')}
@@ -153,9 +126,9 @@ const AdminPage = () => {
             </div>
 
             <UserList
-                selectedIds={selected.map((u) => u.id)}
-                onToggleRow={handleToggleRow}
-                onToggleAll={handleToggleAll}
+                selectedIds={selection.items.map((u) => u.id)}
+                onToggleRow={selection.toggle}
+                onToggleAll={selection.toggleAll}
                 refreshToken={refreshToken}
             />
 
@@ -174,9 +147,7 @@ const AdminPage = () => {
                     <Modal.Title>{t('admin.deleteConfirm.title')}</Modal.Title>
                 </Modal.Header>
                 <Modal.Body>
-                    {t('admin.deleteConfirm.body', {
-                        names: selected.map((u) => `${u.firstName} ${u.lastName}`).join(', '),
-                    })}
+                    {t('admin.deleteConfirm.body', { names: selection.items.map(formatName).join(', ') })}
                 </Modal.Body>
                 <Modal.Footer>
                     <Button variant="secondary" onClick={closeModal}>
