@@ -99,7 +99,7 @@ describe("POST /api/auth/login and GET /api/auth/me", () => {
         expect(res.status).toBe(401);
     });
 
-    it("rejects login for a blocked user with 401", async () => {
+    it("rejects login for a blocked user with 403 and a distinct message", async () => {
         const email = uniqueEmail("blocked");
         await register({ email });
         await prisma.user.update({ where: { email }, data: { isBlocked: true } });
@@ -108,7 +108,21 @@ describe("POST /api/auth/login and GET /api/auth/me", () => {
             .post("/api/auth/login")
             .send({ email, password: "correct-password" });
 
+        expect(res.status).toBe(403);
+        expect(res.body.message).toBe("Your account has been blocked");
+    });
+
+    it("rejects login for a blocked user with a wrong password using the generic 401 message", async () => {
+        const email = uniqueEmail("blocked-wrong-pw");
+        await register({ email });
+        await prisma.user.update({ where: { email }, data: { isBlocked: true } });
+
+        const res = await request(app)
+            .post("/api/auth/login")
+            .send({ email, password: "wrong-password" });
+
         expect(res.status).toBe(401);
+        expect(res.body.message).toBe("Invalid email or password");
     });
 });
 

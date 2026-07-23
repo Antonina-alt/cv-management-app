@@ -64,13 +64,17 @@ router.post('/login', async (req, res) => {
         include: { credential: true, roles: true },
     });
 
-    if (!user || !user.credential || user.isBlocked) {
+    if (!user || !user.credential) {
         return res.status(401).json({ message: 'Invalid email or password' });
     }
 
     const passwordMatches = await bcrypt.compare(password, user.credential.passwordHash);
     if (!passwordMatches) {
         return res.status(401).json({ message: 'Invalid email or password' });
+    }
+
+    if (user.isBlocked) {
+        return res.status(403).json({ message: 'Your account has been blocked' });
     }
 
     const token = generateToken(user.id);
