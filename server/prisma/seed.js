@@ -1,7 +1,7 @@
 import { prisma } from "../lib/prisma.js";
 import { normalizeName } from "../lib/normalize.js";
 
-const categories = ["Certification", "Domain knowledge", "Personal info", "Soft skills"];
+const categories = ["Certification", "Domain knowledge", "Personal info", "Soft skills", "Other"];
 
 const systemAttributes = [
     { name: "First name", systemKey: "FIRST_NAME", type: "STRING", category: "Personal info" },
