@@ -154,7 +154,15 @@ router.get("/:id", optionalAuth, async (req, res) => {
     const valuesByCandidateId = groupValuesByCandidateId(candidateValues);
     const visibleResumes = filterVisibleResumesByCandidateValues(position, position.resumes, valuesByCandidateId);
 
-    res.status(200).json({ ...position, resumes: visibleResumes });
+    // Admins act as owner of every page (incl. candidate), so they can also create/open a
+    // resume for themselves on this position — recruiters never do, so this stays admin-only.
+    const myResume = req.user.roles.includes("ADMIN")
+        ? await prisma.resume.findUnique({
+            where: { candidateId_positionId: { candidateId: req.user.id, positionId: id } },
+        })
+        : undefined;
+
+    res.status(200).json({ ...position, resumes: visibleResumes, myResume });
 });
 
 router.post("/", requireAuth, requireRole("RECRUITER", "ADMIN"), async (req, res) => {

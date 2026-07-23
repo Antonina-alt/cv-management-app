@@ -17,7 +17,9 @@ const PositionDetailPage = () => {
     const { id } = useParams()
     const navigate = useNavigate()
     const { user } = useAuth()
-    const canManage = Boolean(user) && (user.roles.includes('RECRUITER') || user.roles.includes('ADMIN'))
+    const isAdmin = Boolean(user) && user.roles.includes('ADMIN')
+    const canManage = Boolean(user) && (user.roles.includes('RECRUITER') || isAdmin)
+    const canActAsCandidate = Boolean(user) && (!user.roles.includes('RECRUITER') || isAdmin)
 
     const [position, setPosition] = useState(null)
     const [loading, setLoading] = useState(true)
@@ -117,7 +119,7 @@ const PositionDetailPage = () => {
                 </Card.Body>
             </Card>
 
-            {user && !canManage && (
+            {canActAsCandidate && (
                 <div className="d-flex gap-2 mb-4">
                     {position.myResume ? (
                         <Button variant="primary" onClick={() => navigate(`/resumes/${position.myResume.id}`)}>

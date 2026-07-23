@@ -92,7 +92,7 @@ router.post("/", requireAuth, async (req, res) => {
     }
 
     const valuesByAttributeId = await loadCandidateValues(req.user.id);
-    if (!candidateHasPositionAccess(position, valuesByAttributeId)) {
+    if (!req.user.roles.includes("ADMIN") && !candidateHasPositionAccess(position, valuesByAttributeId)) {
         return res.status(403).json({ message: "Forbidden" });
     }
 
