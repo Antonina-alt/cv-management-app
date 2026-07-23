@@ -5,6 +5,7 @@ import DataTable from 'datatables.net-react'
 import DT from 'datatables.net-bs5'
 import 'datatables.net-bs5/css/dataTables.bootstrap5.css'
 import { listPositions } from '../../api/positions.js'
+import AccessBadge from '../common/AccessBadge.jsx'
 
 // eslint-disable-next-line react-hooks/rules-of-hooks -- DataTables static registration, not a React hook
 DataTable.use(DT)
@@ -62,11 +63,7 @@ const PositionList = ({ selectedIds = [], onToggleRow, onToggleAll, refreshToken
 
     const slots = useMemo(() => ({
         [2 + offset]: (data, row) => (row.level ? t(`positions.levels.${row.level}`) : ''),
-        [3 + offset]: (data, row) => (
-            <span className={`badge ${row.isPublic ? 'text-bg-success' : 'text-bg-secondary'}`}>
-                {t(row.isPublic ? 'positions.public' : 'positions.restricted')}
-            </span>
-        ),
+        [3 + offset]: (data, row) => <AccessBadge isPublic={row.isPublic} />,
     }), [t, offset])
 
     const options = useMemo(() => ({

@@ -20,7 +20,15 @@
     },
     "home": {
         "title": "Home",
-        "description": "Public stats, recent resumes and top candidates will appear here."
+        "description": "Public stats, recent resumes and top candidates will appear here.",
+        "recentPositions": "Recent positions",
+        "stats": {
+            "resumesLast24h": "Resumes in the last 24h",
+            "totalPositions": "Positions",
+            "totalCandidates": "Candidates",
+            "totalRecruiters": "Recruiters",
+            "totalSubmittedResumes": "Submitted resumes"
+        }
     },
     "positions": {
         "title": "Positions",
@@ -137,7 +145,7 @@
         "resultsFor": "Results for \"{{query}}\"",
         "noQuery": "Enter a search term in the header to see results.",
         "loading": "Searching...",
-        "empty": "No results found.",
+        "emptyAll": "No results found among positions, resumes and projects.",
         "sections": {
             "positions": "Positions",
             "projects": "Projects",

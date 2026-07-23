@@ -4,13 +4,12 @@ import { requireAuth, requireRole, optionalAuth } from "../middleware/auth.js";
 import { deleteWithVersion } from "../lib/optimisticLock.js";
 import { resolveTagIds } from "../lib/tags.js";
 import { buildAccessRuleData, candidateHasPositionAccess } from "../lib/positionAccess.js";
+import { isRecruiterOrAdmin, candidateAccessMap, groupValuesByCandidateId, filterPositionsForUser } from "../lib/positionVisibility.js";
 import { filterVisibleResumesByCandidateValues } from "../lib/resumeContent.js";
 
 const router = express.Router();
 
 const POSITION_LEVELS = ["JUNIOR", "MIDDLE", "SENIOR", "LEAD", "C_LEVEL"];
-
-const isRecruiterOrAdmin = (user) => user.roles.includes("RECRUITER") || user.roles.includes("ADMIN");
 
 const include = {
     attributes: { include: { attribute: { include: { category: true } } }, orderBy: { sortOrder: "asc" } },
@@ -24,25 +23,6 @@ const includeWithResumes = {
     resumes: { include: { candidate: true, _count: { select: { likes: true } } } },
 };
 
-const candidateAccessMap = async (candidateId) => {
-    const values = await prisma.candidateAttributeValue.findMany({ where: { candidateId } });
-    return new Map(values.map((v) => [v.attributeId, v]));
-};
-
-// Groups a flat list of CandidateAttributeValue rows (already fetched with a single `in` query)
-// into Map<candidateId, Map<attributeId, value>>, for filtering resumes across many candidates
-// without a query per candidate.
-const groupValuesByCandidateId = (values) => {
-    const map = new Map();
-    for (const v of values) {
-        if (!map.has(v.candidateId)) map.set(v.candidateId, new Map());
-        map.get(v.candidateId).set(v.attributeId, v);
-    }
-    return map;
-};
-
-// Validates {attributeId, operator, ...valueFields}[] against the attribute library and
-// returns Prisma nested-create data, or an error string.
 const validateAccessRules = async (accessRules) => {
     if (!Array.isArray(accessRules)) {
         return { error: "accessRules must be an array" };
@@ -102,17 +82,7 @@ router.get("/", optionalAuth, async (req, res) => {
         orderBy: { updatedAt: "desc" },
     });
 
-    if (!req.user) {
-        return res.status(200).json(positions.filter((p) => p.isPublic));
-    }
-
-    if (isRecruiterOrAdmin(req.user)) {
-        return res.status(200).json(positions);
-    }
-
-    const valuesByAttributeId = await candidateAccessMap(req.user.id);
-    const accessible = positions.filter((p) => candidateHasPositionAccess(p, valuesByAttributeId));
-    res.status(200).json(accessible);
+    res.status(200).json(await filterPositionsForUser(positions, req.user));
 });
 
 router.get("/:id", optionalAuth, async (req, res) => {
