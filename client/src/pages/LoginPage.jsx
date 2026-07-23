@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { Button, Card, Col, Container, Form, Row } from 'react-bootstrap'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../context/auth-context.js'
 
@@ -23,24 +24,44 @@ const LoginPage = () => {
     }
 
     return (
-        <div>
-            <h1>{t('auth.loginTitle')}</h1>
-            <form onSubmit={handleSubmit}>
-                <div>
-                    <label htmlFor="email">{t('auth.email')}</label>
-                    <input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-                </div>
-                <div>
-                    <label htmlFor="password">{t('auth.password')}</label>
-                    <input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
-                </div>
-                {error && <p role="alert">{error}</p>}
-                <button type="submit">{t('auth.submitLogin')}</button>
-            </form>
-            <p>
-                {t('auth.noAccount')} <Link to="/register">{t('auth.registerTitle')}</Link>
-            </p>
-        </div>
+        <Container className="d-flex justify-content-center align-items-center py-5">
+            <Row className="w-100 justify-content-center">
+                <Col xs={12} sm={9} md={6} lg={4}>
+                    <Card className="shadow-sm">
+                        <Card.Body className="p-4">
+                            <Card.Title as="h1" className="h3 text-center mb-4">{t('auth.loginTitle')}</Card.Title>
+                            <Form onSubmit={handleSubmit}>
+                                <Form.Group className="mb-3" controlId="email">
+                                    <Form.Label>{t('auth.email')}</Form.Label>
+                                    <Form.Control
+                                        type="email"
+                                        value={email}
+                                        onChange={(e) => setEmail(e.target.value)}
+                                        required
+                                    />
+                                </Form.Group>
+                                <Form.Group className="mb-3" controlId="password">
+                                    <Form.Label>{t('auth.password')}</Form.Label>
+                                    <Form.Control
+                                        type="password"
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
+                                        required
+                                    />
+                                </Form.Group>
+                                {error && <div className="alert alert-danger" role="alert">{error}</div>}
+                                <Button type="submit" variant="primary" className="w-100">
+                                    {t('auth.submitLogin')}
+                                </Button>
+                            </Form>
+                            <p className="text-center text-muted mt-3 mb-0">
+                                {t('auth.noAccount')} <Link to="/register">{t('auth.registerTitle')}</Link>
+                            </p>
+                        </Card.Body>
+                    </Card>
+                </Col>
+            </Row>
+        </Container>
     )
 }
 
