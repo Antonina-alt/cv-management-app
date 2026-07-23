@@ -71,7 +71,6 @@ const PositionsPage = () => {
     return (
         <div>
             <h1>{t('positions.title')}</h1>
-            <p>{t('positions.description')}</p>
 
             {banner && (
                 <div className="alert alert-warning alert-dismissible" role="alert">

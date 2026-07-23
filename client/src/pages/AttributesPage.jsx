@@ -85,7 +85,6 @@ const AttributesPage = () => {
     return (
         <div>
             <h1>{t('attributes.title')}</h1>
-            <p>{t('attributes.description')}</p>
 
             {banner && (
                 <div className="alert alert-warning alert-dismissible" role="alert">

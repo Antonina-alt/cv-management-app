@@ -86,7 +86,6 @@ const AdminPage = () => {
     return (
         <div>
             <h1>{t('admin.title')}</h1>
-            <p>{t('admin.description')}</p>
 
             {banner && (
                 <div className="alert alert-warning alert-dismissible" role="alert">
