@@ -1,5 +1,3 @@
-// Which AccessOperator values make sense for each AttributeType. IMAGE/DATE_RANGE are
-// excluded — there's no sensible single-value comparison for them.
 export const ACCESS_OPERATORS_BY_TYPE = {
     STRING: ["EQUALS", "NOT_EQUALS"],
     TEXT: ["EQUALS", "NOT_EQUALS"],
@@ -16,116 +14,86 @@ const EMPTY_RULE_VALUE = {
     optionId: null,
 };
 
-// Given an Attribute (for its `type` and, for SELECT, its `options`), an operator, and the
-// request body, validate the operator against the type and pick the one relevant value column.
-export const buildAccessRuleData = (attribute, operator, body) => {
-    const allowedOperators = ACCESS_OPERATORS_BY_TYPE[attribute.type];
-    if (!allowedOperators) {
-        return { error: `access rules are not supported for ${attribute.type} attributes` };
-    }
-    if (!allowedOperators.includes(operator)) {
-        return { error: `operator ${operator} is not valid for ${attribute.type} attributes` };
-    }
+const validateRuleString = (body) => (body.stringValue ? { stringValue: String(body.stringValue) } : { error: "stringValue is required" });
 
-    const data = { ...EMPTY_RULE_VALUE };
-
-    switch (attribute.type) {
-        case "STRING":
-        case "TEXT":
-            if (!body.stringValue) {
-                return { error: "stringValue is required" };
-            }
-            data.stringValue = String(body.stringValue);
-            break;
-        case "NUMBER": {
-            if (body.numberValue === undefined || body.numberValue === null || body.numberValue === "") {
-                return { error: "numberValue is required" };
-            }
-            const numberValue = Number(body.numberValue);
-            if (Number.isNaN(numberValue)) {
-                return { error: "numberValue must be a number" };
-            }
-            data.numberValue = numberValue;
-            break;
-        }
-        case "DATE": {
-            if (!body.dateValue) {
-                return { error: "dateValue is required" };
-            }
-            const dateValue = new Date(body.dateValue);
-            if (Number.isNaN(dateValue.getTime())) {
-                return { error: "dateValue must be a valid date" };
-            }
-            data.dateValue = dateValue;
-            break;
-        }
-        case "SELECT": {
-            const option = attribute.options?.find((o) => o.id === body.optionId);
-            if (!option) {
-                return { error: "optionId must reference one of the attribute's options" };
-            }
-            data.optionId = body.optionId;
-            break;
-        }
-        case "BOOLEAN":
-            // IS_TRUE/IS_FALSE carry the meaning entirely in the operator; no stored value.
-            break;
-        default:
-            return { error: "unsupported attribute type" };
-    }
-
-    return { data };
+const validateRuleNumber = (body) => {
+    if (body.numberValue === undefined || body.numberValue === null || body.numberValue === "") return { error: "numberValue is required" };
+    const numberValue = Number(body.numberValue);
+    return Number.isNaN(numberValue) ? { error: "numberValue must be a number" } : { numberValue };
 };
 
-// Pure comparison of one PositionAccessRule (with `attribute` included, for its `.type`)
-// against a candidate's CandidateAttributeValue for that same attribute (or null/undefined
-// if the candidate never set one).
+const validateRuleDate = (body) => {
+    if (!body.dateValue) return { error: "dateValue is required" };
+    const dateValue = new Date(body.dateValue);
+    return Number.isNaN(dateValue.getTime()) ? { error: "dateValue must be a valid date" } : { dateValue };
+};
+
+const validateRuleSelect = (attribute, body) => {
+    const option = attribute.options?.find((o) => o.id === body.optionId);
+    return option ? { optionId: body.optionId } : { error: "optionId must reference one of the attribute's options" };
+};
+
+const RULE_VALUE_VALIDATORS = {
+    STRING: (attribute, body) => validateRuleString(body),
+    TEXT: (attribute, body) => validateRuleString(body),
+    NUMBER: (attribute, body) => validateRuleNumber(body),
+    DATE: (attribute, body) => validateRuleDate(body),
+    SELECT: (attribute, body) => validateRuleSelect(attribute, body),
+    BOOLEAN: () => ({}),
+};
+
+export const buildAccessRuleData = (attribute, operator, body) => {
+    const allowedOperators = ACCESS_OPERATORS_BY_TYPE[attribute.type];
+    if (!allowedOperators) return { error: `access rules are not supported for ${attribute.type} attributes` };
+    if (!allowedOperators.includes(operator)) return { error: `operator ${operator} is not valid for ${attribute.type} attributes` };
+
+    const validator = RULE_VALUE_VALIDATORS[attribute.type];
+    if (!validator) return { error: "unsupported attribute type" };
+
+    const { error, ...fields } = validator(attribute, body);
+    return error ? { error } : { data: { ...EMPTY_RULE_VALUE, ...fields } };
+};
+
+const ACTUAL_EXPECTED_BY_TYPE = {
+    SELECT: (value, rule) => [value.selectedOptionId ?? null, rule.optionId ?? null],
+    NUMBER: (value, rule) => [
+        value.numberValue == null ? null : Number(value.numberValue),
+        rule.numberValue == null ? null : Number(rule.numberValue),
+    ],
+    DATE: (value, rule) => [
+        value.dateValue ? new Date(value.dateValue).getTime() : null,
+        rule.dateValue ? new Date(rule.dateValue).getTime() : null,
+    ],
+};
+
+const defaultActualExpected = (value, rule) => [value.stringValue ?? null, rule.stringValue ?? null];
+
+const resolveComparisonValues = (rule, candidateValue) => {
+    const resolver = ACTUAL_EXPECTED_BY_TYPE[rule.attribute.type] ?? defaultActualExpected;
+    return resolver(candidateValue, rule);
+};
+
+const COMPARATORS = {
+    EQUALS: (a, b) => a === b,
+    NOT_EQUALS: (a, b) => a !== b,
+    GREATER_THAN: (a, b) => a > b,
+    GREATER_THAN_OR_EQUALS: (a, b) => a >= b,
+    LESS_THAN: (a, b) => a < b,
+    LESS_THAN_OR_EQUALS: (a, b) => a <= b,
+};
+
 export const evaluateAccessRule = (rule, candidateValue) => {
     if (rule.operator === "IS_TRUE") return candidateValue?.booleanValue === true;
     if (rule.operator === "IS_FALSE") return candidateValue?.booleanValue === false;
-
     if (!candidateValue) return false;
 
-    const type = rule.attribute.type;
-    let actual;
-    let expected;
-
-    if (type === "SELECT") {
-        actual = candidateValue.selectedOptionId ?? null;
-        expected = rule.optionId ?? null;
-    } else if (type === "NUMBER") {
-        actual = candidateValue.numberValue == null ? null : Number(candidateValue.numberValue);
-        expected = rule.numberValue == null ? null : Number(rule.numberValue);
-    } else if (type === "DATE") {
-        actual = candidateValue.dateValue ? new Date(candidateValue.dateValue).getTime() : null;
-        expected = rule.dateValue ? new Date(rule.dateValue).getTime() : null;
-    } else {
-        actual = candidateValue.stringValue ?? null;
-        expected = rule.stringValue ?? null;
-    }
-
+    const [actual, expected] = resolveComparisonValues(rule, candidateValue);
     if (actual === null || expected === null) return false;
 
-    switch (rule.operator) {
-        case "EQUALS":
-            return actual === expected;
-        case "NOT_EQUALS":
-            return actual !== expected;
-        case "GREATER_THAN":
-            return actual > expected;
-        case "GREATER_THAN_OR_EQUALS":
-            return actual >= expected;
-        case "LESS_THAN":
-            return actual < expected;
-        case "LESS_THAN_OR_EQUALS":
-            return actual <= expected;
-        default:
-            return false;
-    }
+    const compare = COMPARATORS[rule.operator];
+    return compare ? compare(actual, expected) : false;
 };
 
-// A candidate has access to a position if it's public, or if every access rule passes
-// (AND semantics) against their attribute values, keyed by attributeId.
 export const candidateHasPositionAccess = (position, valuesByAttributeId) => {
     if (position.isPublic) return true;
     if (!position.accessRules?.length) return false;
