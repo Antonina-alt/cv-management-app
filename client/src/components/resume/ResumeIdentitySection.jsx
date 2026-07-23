@@ -8,8 +8,8 @@ import { ConflictError } from '../../api/http.js'
 
 // The candidate's always-shown identity block (name/location/photo), stored directly on User.
 // Text fields autosave through the shared debounce queue; the photo drop/remove saves
-// immediately. Photo editing only works for the logged-in candidate themselves — /api/profile/
-// image always targets the caller, not an arbitrary candidateId (see server route).
+// immediately. /api/profile/:candidateId/image is candidate-scoped (self or admin, see server
+// route), so editableImage is driven purely by the parent's edit permission, not by identity.
 const ResumeIdentitySection = ({ candidate, editableText, editableImage, autosave, onConflict, onCandidateChange }) => {
     const { t } = useTranslation()
     const [form, setForm] = useState({
@@ -47,7 +47,7 @@ const ResumeIdentitySection = ({ candidate, editableText, editableImage, autosav
 
     const handleUploadImage = async (url) => {
         try {
-            const updated = await setProfileImage(url, versionRef.current)
+            const updated = await setProfileImage(candidate.id, url, versionRef.current)
             versionRef.current = updated.version
             onCandidateChange(updated)
             setBanner(null)
@@ -64,7 +64,7 @@ const ResumeIdentitySection = ({ candidate, editableText, editableImage, autosav
     const handleRemoveImage = async () => {
         const previousUrl = candidate.imageUrl
         try {
-            const updated = await removeProfileImage(versionRef.current)
+            const updated = await removeProfileImage(candidate.id, versionRef.current)
             versionRef.current = updated.version
             onCandidateChange(updated)
             setBanner(null)

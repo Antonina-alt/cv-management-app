@@ -43,6 +43,14 @@ const App = () => (
                             )}
                         />
                         <Route
+                            path="/profile/:candidateId"
+                            element={(
+                                <ProtectedRoute>
+                                    <ProfilePage />
+                                </ProtectedRoute>
+                            )}
+                        />
+                        <Route
                             path="/attributes"
                             element={(
                                 <ProtectedRoute roles={['RECRUITER', 'ADMIN']}>

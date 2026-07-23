@@ -12,6 +12,7 @@ import tagsRouter from "./routes/tags.js";
 import positionsRouter from "./routes/positions.js";
 import resumesRouter from "./routes/resumes.js";
 import searchRouter from "./routes/search.js";
+import adminRouter from "./routes/admin.js";
 
 dotenv.config();
 
@@ -34,6 +35,7 @@ app.use('/api/tags', tagsRouter);
 app.use('/api/positions', positionsRouter);
 app.use('/api/resumes', resumesRouter);
 app.use('/api/search', searchRouter);
+app.use('/api/admin/users', adminRouter);
 
 const clientDistPath = path.resolve(process.cwd(), '../client/dist');
 app.use(express.static(clientDistPath));

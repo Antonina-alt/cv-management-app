@@ -195,7 +195,44 @@
     },
     "admin": {
         "title": "Administration",
-        "description": "User and role management will appear here."
+        "description": "Manage users, blocking and roles.",
+        "searchPlaceholder": "Search by name or email...",
+        "loading": "Loading...",
+        "empty": "No users found.",
+        "selectAll": "Select all",
+        "conflict": "This user was changed by someone else. The list has been refreshed.",
+        "table": {
+            "name": "Name",
+            "email": "Email",
+            "roles": "Roles",
+            "status": "Status",
+            "createdAt": "Registered"
+        },
+        "status": {
+            "active": "Active",
+            "blocked": "Blocked"
+        },
+        "roles": {
+            "CANDIDATE": "Candidate",
+            "RECRUITER": "Recruiter",
+            "ADMIN": "Admin"
+        },
+        "toolbar": {
+            "viewProfile": "View profile",
+            "block": "Block",
+            "unblock": "Unblock",
+            "manageRoles": "Manage roles",
+            "delete": "Delete"
+        },
+        "roleModal": {
+            "title": "Roles for {{name}}",
+            "cancel": "Cancel",
+            "save": "Save"
+        },
+        "deleteConfirm": {
+            "title": "Delete user(s)",
+            "body": "Delete \"{{names}}\"? This cannot be undone."
+        }
     },
     "auth": {
         "loginTitle": "Log in",
@@ -213,6 +250,7 @@
         "title": "Profile",
         "roles": "Roles",
         "conflict": "This was changed elsewhere. The data has been refreshed.",
+        "forbidden": "You don't have access to this profile.",
         "tabs": {
             "about": "About me",
             "info": "Information",

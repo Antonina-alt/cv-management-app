@@ -18,7 +18,8 @@ const attributeValueInclude = {
 
 const projectInclude = { tags: { include: { tag: true } } };
 
-router.patch("/image", requireAuth, async (req, res) => {
+router.patch("/:candidateId/image", requireAuth, requireSelfOrAdmin("candidateId"), async (req, res) => {
+    const { candidateId } = req.params;
     const { imageUrl, version } = req.body ?? {};
 
     if (!imageUrl || version === undefined) {
@@ -26,20 +27,21 @@ router.patch("/image", requireAuth, async (req, res) => {
     }
 
     const result = await prisma.user.updateMany({
-        where: { id: req.user.id, version },
+        where: { id: candidateId, version },
         data: { imageUrl, version: { increment: 1 } },
     });
 
     if (result.count === 0) {
-        const latest = await findWithRoles(req.user.id);
+        const latest = await findWithRoles(candidateId);
         return res.status(409).json({ message: "Version conflict", user: toPublicUser(latest) });
     }
 
-    const updated = await findWithRoles(req.user.id);
+    const updated = await findWithRoles(candidateId);
     res.status(200).json(toPublicUser(updated));
 });
 
-router.delete("/image", requireAuth, async (req, res) => {
+router.delete("/:candidateId/image", requireAuth, requireSelfOrAdmin("candidateId"), async (req, res) => {
+    const { candidateId } = req.params;
     const { version } = req.body ?? {};
 
     if (version === undefined) {
@@ -47,16 +49,16 @@ router.delete("/image", requireAuth, async (req, res) => {
     }
 
     const result = await prisma.user.updateMany({
-        where: { id: req.user.id, version },
+        where: { id: candidateId, version },
         data: { imageUrl: null, version: { increment: 1 } },
     });
 
     if (result.count === 0) {
-        const latest = await findWithRoles(req.user.id);
+        const latest = await findWithRoles(candidateId);
         return res.status(409).json({ message: "Version conflict", user: toPublicUser(latest) });
     }
 
-    const updated = await findWithRoles(req.user.id);
+    const updated = await findWithRoles(candidateId);
     res.status(200).json(toPublicUser(updated));
 });
 

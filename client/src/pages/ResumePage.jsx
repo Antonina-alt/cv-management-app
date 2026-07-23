@@ -196,7 +196,7 @@ const ResumePage = () => {
             <ResumeIdentitySection
                 candidate={resume.candidate}
                 editableText={resume.canEdit}
-                editableImage={resume.canEdit && isSelf}
+                editableImage={resume.canEdit}
                 autosave={autosave}
                 onConflict={handleConflict}
                 onCandidateChange={handleCandidateChange}
