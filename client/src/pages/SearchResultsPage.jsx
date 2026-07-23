@@ -3,6 +3,7 @@ import { Badge, Table } from 'react-bootstrap'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { search } from '../api/search.js'
+import { formatName } from '../lib/formatName.js'
 import AccessBadge from '../components/common/AccessBadge.jsx'
 
 const PositionResults = ({ positions }) => {
@@ -54,7 +55,7 @@ const ProjectResults = ({ projects }) => {
                     {projects.map((p) => (
                         <tr key={p.id}>
                             <td>{p.title}</td>
-                            {p.candidate && <td>{p.candidate.firstName} {p.candidate.lastName}</td>}
+                            {p.candidate && <td>{formatName(p.candidate)}</td>}
                             <td>{p.tags.map((tag) => <Badge key={tag} bg="secondary" className="me-1">{tag}</Badge>)}</td>
                         </tr>
                     ))}
@@ -82,7 +83,7 @@ const ResumeResults = ({ resumes }) => {
                 <tbody>
                     {resumes.map((r) => (
                         <tr key={r.id}>
-                            <td><Link to={`/resumes/${r.id}`}>{r.candidate.firstName} {r.candidate.lastName}</Link></td>
+                            <td><Link to={`/resumes/${r.id}`}>{formatName(r.candidate)}</Link></td>
                             <td>{r.position.title}</td>
                             <td>{r.likeCount}</td>
                         </tr>

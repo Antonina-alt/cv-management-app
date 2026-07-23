@@ -5,17 +5,21 @@ import DataTable from 'datatables.net-react'
 import DT from 'datatables.net-bs5'
 import 'datatables.net-bs5/css/dataTables.bootstrap5.css'
 import { listUsers } from '../../api/admin.js'
+import { useAsyncData } from '../../hooks/useAsyncData.js'
+import { formatName } from '../../lib/formatName.js'
 
 // eslint-disable-next-line react-hooks/rules-of-hooks -- DataTables static registration, not a React hook
 DataTable.use(DT)
 
-// Admin users table: same checkbox-column-no-row-buttons pattern as PositionList/AttributeList.
 const UserList = ({ selectedIds = [], onToggleRow, onToggleAll, refreshToken }) => {
     const { t } = useTranslation()
     const [q, setQ] = useState('')
-    const [users, setUsers] = useState([])
-    const [loading, setLoading] = useState(true)
-    const [error, setError] = useState(null)
+    const { data: loaded, loading, error } = useAsyncData(
+        () => listUsers({ q: q || undefined }),
+        [q, refreshToken],
+        { debounceMs: 200 },
+    )
+    const users = loaded ?? []
     const dtRef = useRef(null)
     const headerCheckboxRef = useRef(null)
     const onToggleRowRef = useRef(onToggleRow)
@@ -28,25 +32,9 @@ const UserList = ({ selectedIds = [], onToggleRow, onToggleAll, refreshToken }) 
         usersRef.current = users
     })
 
-    useEffect(() => {
-        let cancelled = false
-
-        const handle = setTimeout(() => {
-            if (cancelled) return
-            setLoading(true)
-            setError(null)
-            listUsers({ q: q || undefined })
-                .then((data) => { if (!cancelled) setUsers(data) })
-                .catch((err) => { if (!cancelled) setError(err.message) })
-                .finally(() => { if (!cancelled) setLoading(false) })
-        }, 200)
-
-        return () => { cancelled = true; clearTimeout(handle) }
-    }, [q, refreshToken])
-
     const columns = useMemo(() => [
         ...(onToggleRow ? [{ data: null, title: '', orderable: false, className: 'dt-checkbox-column', width: '1%' }] : []),
-        { data: (row) => `${row.firstName} ${row.lastName}`, title: t('admin.table.name') },
+        { data: (row) => formatName(row), title: t('admin.table.name') },
         { data: 'email', title: t('admin.table.email') },
         { data: (row) => row.roles.join(', '), title: t('admin.table.roles') },
         { data: 'isBlocked', title: t('admin.table.status') },
@@ -86,7 +74,7 @@ const UserList = ({ selectedIds = [], onToggleRow, onToggleAll, refreshToken }) 
             const checkbox = document.createElement('input')
             checkbox.type = 'checkbox'
             checkbox.className = 'form-check-input'
-            checkbox.setAttribute('aria-label', `${data.firstName} ${data.lastName}`)
+            checkbox.setAttribute('aria-label', formatName(data))
             checkbox.onclick = (e) => {
                 e.stopPropagation()
                 onToggleRowRef.current?.(data)

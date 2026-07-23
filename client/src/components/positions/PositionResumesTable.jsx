@@ -1,10 +1,8 @@
 import { Table } from 'react-bootstrap'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { formatName } from '../../lib/formatName.js'
 
-// Read-only. No toolbar needed here since there are no actions to take from this list — opening
-// a resume is a navigation, not a row action. Drafts aren't clickable: recruiters can only view
-// published resumes (server-enforced), so plain text avoids a dead link.
 const PositionResumesTable = ({ resumes }) => {
     const { t } = useTranslation()
 
@@ -26,9 +24,9 @@ const PositionResumesTable = ({ resumes }) => {
                     <tr key={resume.id}>
                         <td>
                             {resume.status === 'PUBLISHED' ? (
-                                <Link to={`/resumes/${resume.id}`}>{resume.candidate?.firstName} {resume.candidate?.lastName}</Link>
+                                <Link to={`/resumes/${resume.id}`}>{formatName(resume.candidate)}</Link>
                             ) : (
-                                <>{resume.candidate?.firstName} {resume.candidate?.lastName}</>
+                                <>{formatName(resume.candidate)}</>
                             )}
                         </td>
                         <td>{resume.status}</td>

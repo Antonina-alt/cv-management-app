@@ -5,6 +5,7 @@ import DataTable from 'datatables.net-react'
 import DT from 'datatables.net-bs5'
 import 'datatables.net-bs5/css/dataTables.bootstrap5.css'
 import { listPositions } from '../../api/positions.js'
+import { useAsyncData } from '../../hooks/useAsyncData.js'
 import AccessBadge from '../common/AccessBadge.jsx'
 
 // eslint-disable-next-line react-hooks/rules-of-hooks -- DataTables static registration, not a React hook
@@ -18,9 +19,12 @@ const PositionList = ({ selectedIds = [], onToggleRow, onToggleAll, refreshToken
     const { t } = useTranslation()
     const [company, setCompany] = useState('')
     const [level, setLevel] = useState('')
-    const [positions, setPositions] = useState([])
-    const [loading, setLoading] = useState(true)
-    const [error, setError] = useState(null)
+    const { data: loaded, loading, error } = useAsyncData(
+        () => listPositions({ company: company || undefined, level: level || undefined }),
+        [company, level, refreshToken],
+        { debounceMs: 200 },
+    )
+    const positions = loaded ?? []
     const dtRef = useRef(null)
     const headerCheckboxRef = useRef(null)
     const onToggleRowRef = useRef(onToggleRow)
@@ -32,22 +36,6 @@ const PositionList = ({ selectedIds = [], onToggleRow, onToggleAll, refreshToken
         onToggleAllRef.current = onToggleAll
         positionsRef.current = positions
     })
-
-    useEffect(() => {
-        let cancelled = false
-
-        const handle = setTimeout(() => {
-            if (cancelled) return
-            setLoading(true)
-            setError(null)
-            listPositions({ company: company || undefined, level: level || undefined })
-                .then((data) => { if (!cancelled) setPositions(data) })
-                .catch((err) => { if (!cancelled) setError(err.message) })
-                .finally(() => { if (!cancelled) setLoading(false) })
-        }, 200)
-
-        return () => { cancelled = true; clearTimeout(handle) }
-    }, [company, level, refreshToken])
 
     const columns = useMemo(() => [
         ...(onToggleRow ? [{ data: null, title: '', orderable: false, className: 'dt-checkbox-column', width: '1%' }] : []),

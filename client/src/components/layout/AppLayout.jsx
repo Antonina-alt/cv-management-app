@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { useAuth } from '../../context/auth-context.js'
 import { usePreferences } from '../../context/preferences-context.js'
 import { getNavItems } from './navConfig.js'
+import { formatName } from '../../lib/formatName.js'
 
 const AppLayout = () => {
     const { t } = useTranslation()
@@ -102,7 +103,7 @@ const AppLayout = () => {
                                         aria-expanded={userMenuOpen}
                                         onClick={() => setUserMenuOpen((open) => !open)}
                                     >
-                                        {user.firstName} {user.lastName}
+                                        {formatName(user)}
                                     </button>
                                     <ul
                                         className={`dropdown-menu dropdown-menu-end${userMenuOpen ? ' show' : ''}`}

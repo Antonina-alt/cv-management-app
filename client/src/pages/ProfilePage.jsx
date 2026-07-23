@@ -4,6 +4,7 @@ import { Tab, Tabs } from 'react-bootstrap'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../context/auth-context.js'
 import { getProfile } from '../api/profile.js'
+import { formatName } from '../lib/formatName.js'
 import { useAutosaveQueue } from '../lib/useAutosaveQueue.js'
 import AboutSection from '../components/profile/AboutSection.jsx'
 import InformationSection from '../components/profile/InformationSection.jsx'
@@ -62,7 +63,7 @@ const ProfilePage = () => {
             <h1>{t('profile.title')}</h1>
             {displayUser && (
                 <>
-                    <p>{displayUser.firstName} {displayUser.lastName}</p>
+                    <p>{formatName(displayUser)}</p>
                     <p>{displayUser.email}</p>
                     <p>{t('profile.roles')}: {displayUser.roles.join(', ')}</p>
                 </>

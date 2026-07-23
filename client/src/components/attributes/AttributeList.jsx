@@ -6,6 +6,7 @@ import DT from 'datatables.net-bs5'
 import 'datatables.net-bs5/css/dataTables.bootstrap5.css'
 import { listAttributeCategories, listAttributes } from '../../api/attributes.js'
 import { getRecentAttributeIds } from '../../lib/recentAttributes.js'
+import { useAsyncData } from '../../hooks/useAsyncData.js'
 import AttributeTypeBadge from './AttributeTypeBadge.jsx'
 
 // eslint-disable-next-line react-hooks/rules-of-hooks -- DataTables static registration, not a React hook
@@ -18,9 +19,12 @@ const AttributeList = ({ selectedIds = [], onToggleRow, onToggleAll, refreshToke
     const [categories, setCategories] = useState([])
     const [categoryId, setCategoryId] = useState('')
     const [query, setQuery] = useState('')
-    const [attributes, setAttributes] = useState([])
-    const [loading, setLoading] = useState(true)
-    const [error, setError] = useState(null)
+    const { data: loaded, loading, error } = useAsyncData(
+        () => listAttributes({ q: query || undefined, categoryId: categoryId || undefined }),
+        [query, categoryId, refreshToken],
+        { debounceMs: 200 },
+    )
+    const attributes = loaded ?? []
     const dtRef = useRef(null)
     const headerCheckboxRef = useRef(null)
     const onToggleRowRef = useRef(onToggleRow)
@@ -45,22 +49,6 @@ const AttributeList = ({ selectedIds = [], onToggleRow, onToggleAll, refreshToke
     useEffect(() => {
         listAttributeCategories().then(setCategories).catch(() => setCategories([]))
     }, [])
-
-    useEffect(() => {
-        let cancelled = false
-
-        const handle = setTimeout(() => {
-            if (cancelled) return
-            setLoading(true)
-            setError(null)
-            listAttributes({ q: query || undefined, categoryId: categoryId || undefined })
-                .then((data) => { if (!cancelled) setAttributes(data) })
-                .catch((err) => { if (!cancelled) setError(err.message) })
-                .finally(() => { if (!cancelled) setLoading(false) })
-        }, 200)
-
-        return () => { cancelled = true; clearTimeout(handle) }
-    }, [query, categoryId, refreshToken])
 
     const recentAttributes = useMemo(
         () => recentIds
