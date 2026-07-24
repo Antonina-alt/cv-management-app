@@ -1,130 +1,129 @@
-import { useState } from 'react'
-import { Button, Modal, Table } from 'react-bootstrap'
+import { useMemo, useState } from 'react'
+import { Button, Modal } from 'react-bootstrap'
 import { useTranslation } from 'react-i18next'
+import CommonDataTable, { TABLE_MODE } from '../common/CommonDataTable.jsx'
 import AccessRuleFormModal from './AccessRuleFormModal.jsx'
+import { useIdSelection } from '../../hooks/useIdSelection.js'
+import { formatDate } from '../../lib/formatDate.js'
 
-const formatValue = (rule, t) => {
+const sectionTableOptions = { paging: false, info: false, ordering: false }
+
+const formatValue = (rule, t, locale) => {
     if (rule.operator === 'IS_TRUE') return t('positions.accessRules.true')
     if (rule.operator === 'IS_FALSE') return t('positions.accessRules.false')
-    if (rule.attribute.type === 'SELECT') return rule.attribute.options?.find((o) => o.id === rule.optionId)?.label ?? ''
+    if (rule.attribute.type === 'SELECT') {
+        return rule.attribute.options?.find((option) => option.id === rule.optionId)?.label ?? ''
+    }
     if (rule.attribute.type === 'NUMBER') return rule.numberValue
-    if (rule.attribute.type === 'DATE') return new Date(rule.dateValue).toLocaleDateString()
+    if (rule.attribute.type === 'DATE') return formatDate(rule.dateValue, locale)
     return rule.stringValue
 }
 
+const ruleToPayload = (rule) => ({
+    attributeId: rule.attributeId,
+    operator: rule.operator,
+    stringValue: rule.stringValue ?? undefined,
+    numberValue: rule.numberValue ?? undefined,
+    dateValue: rule.dateValue ?? undefined,
+    optionId: rule.optionId ?? undefined,
+})
+
 const PositionAccessRulesSection = ({ rules, onSave, disabled }) => {
-    const { t } = useTranslation()
-    const [selectedId, setSelectedId] = useState(null)
+    const { t, i18n } = useTranslation()
+    const selection = useIdSelection()
     const [modal, setModal] = useState(null)
     const [formError, setFormError] = useState(null)
 
-    const selectedRule = rules.find((r) => r.id === selectedId) ?? null
+    const selectedRules = rules.filter((rule) => selection.ids.includes(rule.id))
+    const singleSelected = selectedRules.length === 1 ? selectedRules[0] : null
 
     const closeModal = () => {
         setModal(null)
         setFormError(null)
     }
 
-    const ruleToPayload = (rule) => ({
-        attributeId: rule.attributeId,
-        operator: rule.operator,
-        stringValue: rule.stringValue ?? undefined,
-        numberValue: rule.numberValue ?? undefined,
-        dateValue: rule.dateValue ?? undefined,
-        optionId: rule.optionId ?? undefined,
-    })
-
     const handleCreateSubmit = async (payload) => {
         try {
             await onSave([...rules.map(ruleToPayload), payload])
             closeModal()
-        } catch (err) {
-            setFormError(err.message)
+        } catch (error) {
+            setFormError(error.message)
         }
     }
 
     const handleEditSubmit = async (payload) => {
         try {
-            await onSave(rules.map((r) => (r.id === selectedId ? payload : ruleToPayload(r))))
-            setSelectedId(null)
+            await onSave(rules.map((rule) => (rule.id === singleSelected.id ? payload : ruleToPayload(rule))))
+            selection.setIds([])
             closeModal()
-        } catch (err) {
-            setFormError(err.message)
+        } catch (error) {
+            setFormError(error.message)
         }
     }
 
     const handleDeleteConfirm = async () => {
-        await onSave(rules.filter((r) => r.id !== selectedId).map(ruleToPayload))
-        setSelectedId(null)
+        await onSave(rules.filter((rule) => !selection.ids.includes(rule.id)).map(ruleToPayload))
+        selection.setIds([])
         closeModal()
     }
+
+    const columns = useMemo(() => [
+        { data: (row) => row.attribute.name, title: t('positions.accessRules.form.attribute') },
+        {
+            data: 'operator',
+            title: t('positions.accessRules.form.operator'),
+            render: (data, row) => t(`positions.accessRules.operators.${row.operator}`),
+        },
+        {
+            data: (row) => formatValue(row, t, i18n.resolvedLanguage),
+            title: t('positions.accessRules.form.value'),
+        },
+    ], [i18n.resolvedLanguage, t])
 
     return (
         <div>
             {!disabled && (
-                <div className="d-flex gap-2 mb-3">
+                <div className="d-flex flex-wrap gap-2 mb-3">
                     <Button variant="primary" size="sm" onClick={() => setModal('create')}>
                         {t('positions.accessRules.toolbar.add')}
                     </Button>
-                    <Button variant="outline-primary" size="sm" disabled={!selectedRule} onClick={() => setModal('edit')}>
+                    <Button variant="outline-primary" size="sm" disabled={!singleSelected} onClick={() => setModal('edit')}>
                         {t('positions.accessRules.toolbar.edit')}
                     </Button>
-                    <Button variant="outline-danger" size="sm" disabled={!selectedRule} onClick={() => setModal('delete')}>
+                    <Button
+                        variant="outline-danger"
+                        size="sm"
+                        disabled={selectedRules.length === 0}
+                        onClick={() => setModal('delete')}
+                    >
                         {t('positions.accessRules.toolbar.delete')}
                     </Button>
                 </div>
             )}
 
-            {rules.length === 0 ? (
-                <p className="text-muted">{t('positions.accessRules.empty')}</p>
-            ) : (
-                <Table hover responsive>
-                    <thead>
-                        <tr>
-                            {!disabled && <th />}
-                            <th>{t('positions.accessRules.form.attribute')}</th>
-                            <th>{t('positions.accessRules.form.operator')}</th>
-                            <th>{t('positions.accessRules.form.value')}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {rules.map((rule) => (
-                            <tr
-                                key={rule.id}
-                                className={!disabled && selectedId === rule.id ? 'table-active' : ''}
-                                style={disabled ? undefined : { cursor: 'pointer' }}
-                                onClick={disabled ? undefined : () => setSelectedId(rule.id === selectedId ? null : rule.id)}
-                            >
-                                {!disabled && (
-                                    <td onClick={(e) => e.stopPropagation()}>
-                                        <input
-                                            type="checkbox"
-                                            className="form-check-input"
-                                            checked={selectedId === rule.id}
-                                            onChange={() => setSelectedId(rule.id === selectedId ? null : rule.id)}
-                                        />
-                                    </td>
-                                )}
-                                <td>{rule.attribute.name}</td>
-                                <td>{t(`positions.accessRules.operators.${rule.operator}`)}</td>
-                                <td>{formatValue(rule, t)}</td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </Table>
-            )}
+            <CommonDataTable
+                data={rules}
+                columns={columns}
+                emptyMessage={t('positions.accessRules.empty')}
+                mode={disabled ? TABLE_MODE.READ_ONLY : TABLE_MODE.MULTIPLE}
+                selectedIds={selection.ids}
+                onToggleRow={(row) => selection.toggle(row.id)}
+                onToggleAll={selection.toggleAll}
+                getRowLabel={(row) => row.attribute.name}
+                options={sectionTableOptions}
+            />
 
             {modal === 'create' && (
                 <AccessRuleFormModal show onClose={closeModal} onSubmit={handleCreateSubmit} error={formError} />
             )}
 
-            {modal === 'edit' && selectedRule && (
+            {modal === 'edit' && singleSelected && (
                 <AccessRuleFormModal
-                    key={selectedRule.id}
+                    key={singleSelected.id}
                     show
                     onClose={closeModal}
                     onSubmit={handleEditSubmit}
-                    rule={selectedRule}
+                    rule={singleSelected}
                     error={formError}
                 />
             )}

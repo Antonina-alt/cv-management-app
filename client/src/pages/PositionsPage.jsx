@@ -80,7 +80,7 @@ const PositionsPage = () => {
             )}
 
             {canManage && (
-                <div className="d-flex gap-2 mb-3">
+                <div className="d-flex flex-wrap gap-2 mb-3">
                     <Button variant="primary" onClick={() => setModal('create')}>
                         {t('positions.toolbar.create')}
                     </Button>
@@ -104,7 +104,6 @@ const PositionsPage = () => {
                 selectedIds={canManage ? selection.items.map((p) => p.id) : []}
                 onToggleRow={canManage ? selection.toggle : undefined}
                 onToggleAll={canManage ? selection.toggleAll : undefined}
-                onRowClick={!canManage ? (position) => navigate(`/positions/${position.id}`) : undefined}
                 refreshToken={refreshToken}
             />
 

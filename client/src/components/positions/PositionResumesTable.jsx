@@ -1,40 +1,40 @@
-import { Table } from 'react-bootstrap'
-import { Link } from 'react-router-dom'
+import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
+import CommonDataTable from '../common/CommonDataTable.jsx'
 import { formatName } from '../../lib/formatName.js'
+import { useTableLink } from '../../hooks/useTableLink.js'
+
+const tableOptions = { paging: false, info: false, ordering: false }
 
 const PositionResumesTable = ({ resumes }) => {
     const { t } = useTranslation()
+    const tableLink = useTableLink()
 
-    if (resumes.length === 0) {
-        return <p className="text-muted">{t('positions.resumes.empty')}</p>
-    }
+    const columns = useMemo(() => [
+        {
+            data: (row) => formatName(row.candidate),
+            title: t('positions.resumes.candidate'),
+            render: (value, row) => (
+                row.status === 'PUBLISHED'
+                    ? <a {...tableLink(`/resumes/${row.id}`)}>{formatName(row.candidate)}</a>
+                    : formatName(row.candidate)
+            ),
+        },
+        {
+            data: 'status',
+            title: t('positions.resumes.status'),
+            render: (value, row) => t(`resume.status.${row.status}`),
+        },
+        { data: (row) => row._count?.likes ?? 0, title: t('positions.resumes.likes') },
+    ], [t, tableLink])
 
     return (
-        <Table hover responsive>
-            <thead>
-                <tr>
-                    <th>{t('positions.resumes.candidate')}</th>
-                    <th>{t('positions.resumes.status')}</th>
-                    <th>{t('positions.resumes.likes')}</th>
-                </tr>
-            </thead>
-            <tbody>
-                {resumes.map((resume) => (
-                    <tr key={resume.id}>
-                        <td>
-                            {resume.status === 'PUBLISHED' ? (
-                                <Link to={`/resumes/${resume.id}`}>{formatName(resume.candidate)}</Link>
-                            ) : (
-                                <>{formatName(resume.candidate)}</>
-                            )}
-                        </td>
-                        <td>{resume.status}</td>
-                        <td>{resume._count?.likes ?? 0}</td>
-                    </tr>
-                ))}
-            </tbody>
-        </Table>
+        <CommonDataTable
+            data={resumes}
+            columns={columns}
+            emptyMessage={t('positions.resumes.empty')}
+            options={tableOptions}
+        />
     )
 }
 

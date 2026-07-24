@@ -93,7 +93,7 @@ const AttributesPage = () => {
                 </div>
             )}
 
-            <div className="d-flex gap-2 mb-3">
+            <div className="d-flex flex-wrap gap-2 mb-3">
                 <Button variant="primary" onClick={() => setModal('create')}>
                     {t('attributes.toolbar.create')}
                 </Button>

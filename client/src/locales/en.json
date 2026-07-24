@@ -1,346 +1,364 @@
 {
-    "common": {
-        "back": "Back"
+  "common": {
+    "back": "Back",
+    "dataTable": {
+      "selectAll": "Select all",
+      "zeroRecords": "No matching records found.",
+      "info": "Showing _START_ to _END_ of _TOTAL_ entries",
+      "infoEmpty": "Showing 0 to 0 of 0 entries",
+      "infoFiltered": "(filtered from _MAX_ total entries)",
+      "lengthMenu": "Show _MENU_ entries",
+      "loading": "Loading...",
+      "processing": "Processing...",
+      "first": "First",
+      "last": "Last",
+      "next": "Next",
+      "previous": "Previous",
+      "search": "Search:",
+      "searchPlaceholder": "Search records...",
+      "sortAscending": "Activate to sort ascending",
+      "sortDescending": "Activate to sort descending"
+    }
+  },
+  "nav": {
+    "home": "Home",
+    "positions": "Positions",
+    "profile": "My Profile",
+    "attributes": "Attribute Library",
+    "admin": "Admin"
+  },
+  "header": {
+    "searchPlaceholder": "Search...",
+    "searchLabel": "Search",
+    "login": "Log in",
+    "register": "Register",
+    "logout": "Log out",
+    "toggleTheme": "Toggle theme",
+    "toggleNav": "Toggle navigation"
+  },
+  "home": {
+    "title": "Home",
+    "recentPositions": "Recent positions",
+    "stats": {
+      "resumesLast24h": "Resumes in the last 24h",
+      "totalPositions": "Positions",
+      "totalCandidates": "Candidates",
+      "totalRecruiters": "Recruiters",
+      "totalSubmittedResumes": "Submitted resumes"
+    }
+  },
+  "positions": {
+    "title": "Positions",
+    "loading": "Loading...",
+    "empty": "No positions found.",
+    "selectAll": "Select all",
+    "companyFilter": "Filter by company...",
+    "levelFilter": "Level",
+    "allLevels": "All levels",
+    "public": "Public",
+    "restricted": "Restricted",
+    "conflict": "This position was changed by someone else. It has been refreshed.",
+    "table": {
+      "title": "Title",
+      "company": "Company",
+      "level": "Level",
+      "access": "Access",
+      "attributes": "Attributes",
+      "resumes": "Resumes"
     },
-    "nav": {
-        "home": "Home",
-        "positions": "Positions",
-        "profile": "My Profile",
-        "attributes": "Attribute Library",
-        "admin": "Admin"
+    "levels": {
+      "JUNIOR": "Junior",
+      "MIDDLE": "Middle",
+      "SENIOR": "Senior",
+      "LEAD": "Lead",
+      "C_LEVEL": "C-level"
     },
-    "header": {
-        "searchPlaceholder": "Search...",
-        "searchLabel": "Search",
-        "login": "Log in",
-        "register": "Register",
-        "logout": "Log out",
-        "toggleTheme": "Toggle theme",
-        "toggleNav": "Toggle navigation"
+    "toolbar": {
+      "create": "Create",
+      "open": "Open",
+      "duplicate": "Duplicate",
+      "delete": "Delete",
+      "edit": "Edit"
     },
-    "home": {
-        "title": "Home",
-        "recentPositions": "Recent positions",
-        "stats": {
-            "resumesLast24h": "Resumes in the last 24h",
-            "totalPositions": "Positions",
-            "totalCandidates": "Candidates",
-            "totalRecruiters": "Recruiters",
-            "totalSubmittedResumes": "Submitted resumes"
-        }
+    "form": {
+      "createTitle": "Create position",
+      "editTitle": "Edit position",
+      "title": "Title",
+      "description": "Description",
+      "company": "Company",
+      "level": "Level",
+      "maxProjects": "Max projects in resume",
+      "isPublic": "Public (visible to all authenticated users)",
+      "cancel": "Cancel",
+      "save": "Save"
     },
-    "positions": {
-        "title": "Positions",
-        "loading": "Loading...",
-        "empty": "No positions found.",
-        "selectAll": "Select all",
-        "companyFilter": "Filter by company...",
-        "levelFilter": "Level",
-        "allLevels": "All levels",
-        "public": "Public",
-        "restricted": "Restricted",
-        "conflict": "This position was changed by someone else. It has been refreshed.",
-        "table": {
-            "title": "Title",
-            "company": "Company",
-            "level": "Level",
-            "access": "Access",
-            "attributes": "Attributes",
-            "resumes": "Resumes"
-        },
-        "levels": {
-            "JUNIOR": "Junior",
-            "MIDDLE": "Middle",
-            "SENIOR": "Senior",
-            "LEAD": "Lead",
-            "C_LEVEL": "C-level"
-        },
-        "toolbar": {
-            "create": "Create",
-            "open": "Open",
-            "duplicate": "Duplicate",
-            "delete": "Delete",
-            "edit": "Edit"
-        },
-        "form": {
-            "createTitle": "Create position",
-            "editTitle": "Edit position",
-            "title": "Title",
-            "description": "Description",
-            "company": "Company",
-            "level": "Level",
-            "maxProjects": "Max projects in resume",
-            "isPublic": "Public (visible to all authenticated users)",
-            "cancel": "Cancel",
-            "save": "Save"
-        },
-        "deleteConfirm": {
-            "title": "Delete position(s)",
-            "body": "Delete \"{{titles}}\"? This cannot be undone."
-        },
-        "attributesSection": {
-            "title": "Attributes",
-            "add": "Add",
-            "remove": "Remove selected",
-            "empty": "No attributes added yet.",
-            "pickerTitle": "Add attributes"
-        },
-        "projectFilter": {
-            "title": "Project filter",
-            "noTags": "No project tags — all projects are eligible.",
-            "maxProjects": "Up to {{count}} project(s) included in the generated resume.",
-            "maxProjectsLabel": "Max projects",
-            "tags": "Project tags",
-            "edit": "Edit",
-            "editTitle": "Edit project filter"
-        },
-        "accessRules": {
-            "title": "Access rules",
-            "empty": "No access rules yet. A restricted position is hidden from candidates until rules are added.",
-            "true": "is true",
-            "false": "is false",
-            "toolbar": {
-                "add": "Add rule",
-                "edit": "Edit",
-                "delete": "Delete"
-            },
-            "form": {
-                "createTitle": "Add access rule",
-                "editTitle": "Edit access rule",
-                "attribute": "Attribute",
-                "selectAttribute": "Choose an attribute...",
-                "operator": "Operator",
-                "selectOperator": "Choose an operator...",
-                "value": "Value"
-            },
-            "operators": {
-                "EQUALS": "=",
-                "NOT_EQUALS": "≠",
-                "GREATER_THAN": ">",
-                "GREATER_THAN_OR_EQUALS": "≥",
-                "LESS_THAN": "<",
-                "LESS_THAN_OR_EQUALS": "≤",
-                "IS_TRUE": "is true",
-                "IS_FALSE": "is false"
-            },
-            "deleteConfirm": {
-                "title": "Delete access rule",
-                "body": "Delete this access rule? This cannot be undone."
-            }
-        },
-        "resumes": {
-            "title": "Resumes",
-            "empty": "No resumes created for this position yet.",
-            "candidate": "Candidate",
-            "status": "Status",
-            "likes": "Likes",
-            "create": "Create resume",
-            "open": "Open resume"
-        }
+    "deleteConfirm": {
+      "title": "Delete position(s)",
+      "body": "Delete \"{{titles}}\"? This cannot be undone."
     },
-    "search": {
-        "title": "Search results",
-        "resultsFor": "Results for \"{{query}}\"",
-        "noQuery": "Enter a search term in the header to see results.",
-        "loading": "Searching...",
-        "emptyAll": "No results found among positions, resumes and projects.",
-        "sections": {
-            "positions": "Positions",
-            "projects": "Projects",
-            "resumes": "Resumes"
-        }
+    "attributesSection": {
+      "title": "Attributes",
+      "add": "Add",
+      "remove": "Remove selected",
+      "empty": "No attributes added yet.",
+      "pickerTitle": "Add attributes"
+    },
+    "projectFilter": {
+      "title": "Project filter",
+      "noTags": "No project tags — all projects are eligible.",
+      "maxProjects": "Up to {{count}} project(s) included in the generated resume.",
+      "maxProjectsLabel": "Max projects",
+      "tags": "Project tags",
+      "edit": "Edit",
+      "editTitle": "Edit project filter"
+    },
+    "accessRules": {
+      "title": "Access rules",
+      "empty": "No access rules yet. A restricted position is hidden from candidates until rules are added.",
+      "true": "is true",
+      "false": "is false",
+      "toolbar": {
+        "add": "Add rule",
+        "edit": "Edit",
+        "delete": "Delete"
+      },
+      "form": {
+        "createTitle": "Add access rule",
+        "editTitle": "Edit access rule",
+        "attribute": "Attribute",
+        "selectAttribute": "Choose an attribute...",
+        "operator": "Operator",
+        "selectOperator": "Choose an operator...",
+        "value": "Value"
+      },
+      "operators": {
+        "EQUALS": "=",
+        "NOT_EQUALS": "≠",
+        "GREATER_THAN": ">",
+        "GREATER_THAN_OR_EQUALS": "≥",
+        "LESS_THAN": "<",
+        "LESS_THAN_OR_EQUALS": "≤",
+        "IS_TRUE": "is true",
+        "IS_FALSE": "is false"
+      },
+      "deleteConfirm": {
+        "title": "Delete access rules",
+        "body": "Delete the selected access rule(s)? This cannot be undone."
+      }
+    },
+    "resumes": {
+      "title": "Resumes",
+      "empty": "No resumes created for this position yet.",
+      "candidate": "Candidate",
+      "status": "Status",
+      "likes": "Likes",
+      "create": "Create resume",
+      "open": "Open resume"
+    }
+  },
+  "search": {
+    "title": "Search results",
+    "resultsFor": "Results for \"{{query}}\"",
+    "noQuery": "Enter a search term in the header to see results.",
+    "loading": "Searching...",
+    "emptyAll": "No results found among positions, resumes and projects.",
+    "sections": {
+      "positions": "Positions",
+      "projects": "Projects",
+      "resumes": "Resumes"
+    }
+  },
+  "attributes": {
+    "title": "Attribute Library",
+    "searchPlaceholder": "Search by name...",
+    "categoryFilter": "Category",
+    "allCategories": "All categories",
+    "recentlyUsed": "Recently used",
+    "loading": "Loading...",
+    "empty": "No attributes found.",
+    "systemBadge": "System",
+    "systemNoDelete": "System attributes cannot be deleted",
+    "selectAll": "Select all",
+    "conflict": "This attribute was changed by someone else. The list has been refreshed.",
+    "table": {
+      "name": "Name",
+      "category": "Category",
+      "type": "Type",
+      "description": "Description"
+    },
+    "types": {
+      "STRING": "Text",
+      "TEXT": "Long text",
+      "IMAGE": "Image",
+      "NUMBER": "Number",
+      "DATE": "Date",
+      "DATE_RANGE": "Date range",
+      "BOOLEAN": "Yes/No",
+      "SELECT": "Select"
+    },
+    "toolbar": {
+      "create": "Create",
+      "edit": "Edit",
+      "delete": "Delete"
+    },
+    "form": {
+      "createTitle": "Create attribute",
+      "editTitle": "Edit attribute",
+      "name": "Name",
+      "description": "Description",
+      "category": "Category",
+      "type": "Type",
+      "options": "Options",
+      "optionPlaceholder": "Option {{n}}",
+      "addOption": "Add option",
+      "cancel": "Cancel",
+      "save": "Save"
+    },
+    "deleteConfirm": {
+      "title": "Delete attribute",
+      "body": "Delete \"{{name}}\"? This cannot be undone."
+    }
+  },
+  "admin": {
+    "title": "Administration",
+    "searchPlaceholder": "Search by name or email...",
+    "loading": "Loading...",
+    "empty": "No users found.",
+    "selectAll": "Select all",
+    "conflict": "This user was changed by someone else. The list has been refreshed.",
+    "table": {
+      "name": "Name",
+      "email": "Email",
+      "roles": "Roles",
+      "status": "Status",
+      "createdAt": "Registered"
+    },
+    "status": {
+      "active": "Active",
+      "blocked": "Blocked"
+    },
+    "roles": {
+      "CANDIDATE": "Candidate",
+      "RECRUITER": "Recruiter",
+      "ADMIN": "Admin"
+    },
+    "toolbar": {
+      "viewProfile": "View profile",
+      "block": "Block",
+      "unblock": "Unblock",
+      "manageRoles": "Manage roles",
+      "delete": "Delete"
+    },
+    "roleModal": {
+      "title": "Roles for {{name}}",
+      "cancel": "Cancel",
+      "save": "Save"
+    },
+    "deleteConfirm": {
+      "title": "Delete user(s)",
+      "body": "Delete \"{{names}}\"? This cannot be undone."
+    }
+  },
+  "auth": {
+    "loginTitle": "Log in",
+    "registerTitle": "Register",
+    "email": "Email",
+    "password": "Password",
+    "firstName": "First name",
+    "lastName": "Last name",
+    "noAccount": "No account?",
+    "haveAccount": "Already have an account?",
+    "submitLogin": "Log in",
+    "submitRegister": "Register"
+  },
+  "profile": {
+    "title": "Profile",
+    "roles": "Roles",
+    "conflict": "This was changed elsewhere. The data has been refreshed.",
+    "forbidden": "You don't have access to this profile.",
+    "tabs": {
+      "about": "About me",
+      "info": "Information",
+      "projects": "Projects",
+      "resumes": "Resumes"
+    },
+    "image": {
+      "dropHint": "Drag & drop an image here, or click to choose one",
+      "uploading": "Uploading...",
+      "preview": "Profile photo",
+      "remove": "Remove photo",
+      "invalid": "Image must be PNG, JPEG, WebP or GIF, up to 5MB.",
+      "uploadFailed": "Upload failed. Please try again.",
+      "conflict": "Your profile was changed elsewhere. It has been refreshed."
+    },
+    "about": {
+      "firstName": "First name",
+      "lastName": "Last name",
+      "location": "Location"
+    },
+    "markdown": {
+      "edit": "Edit",
+      "preview": "Preview"
+    },
+    "info": {
+      "add": "Add attribute",
+      "remove": "Remove selected",
+      "empty": "No attributes added yet. Use \"Add attribute\" to pick from the library.",
+      "attribute": "Attribute",
+      "category": "Category",
+      "value": "Value",
+      "selectPlaceholder": "Choose...",
+      "pickerTitle": "Add attributes",
+      "cancel": "Cancel"
+    },
+    "projects": {
+      "create": "Create",
+      "edit": "Edit",
+      "delete": "Delete",
+      "empty": "No projects yet.",
+      "titleColumn": "Title",
+      "titleField": "Title",
+      "period": "Period",
+      "description": "Description",
+      "tags": "Tags",
+      "tagsPlaceholder": "Add a tag...",
+      "createTitle": "Create project",
+      "editTitle": "Edit project",
+      "startDate": "Start date",
+      "endDate": "End date",
+      "cancel": "Cancel",
+      "save": "Save",
+      "deleteConfirmTitle": "Delete project",
+      "deleteConfirmBody": "Delete \"{{title}}\"? This cannot be undone."
+    },
+    "resumes": {
+      "empty": "No resumes yet. They will appear here once you're granted access to a position.",
+      "position": "Position",
+      "status": "Status",
+      "likes": "Likes"
+    }
+  },
+  "resume": {
+    "loading": "Loading...",
+    "conflict": "This resume was changed elsewhere. It has been refreshed.",
+    "publish": "Publish",
+    "like": "Like",
+    "unlike": "Unlike",
+    "status": {
+      "DRAFT": "Draft",
+      "PUBLISHED": "Published"
+    },
+    "identity": {
+      "title": "Candidate",
+      "noPhoto": "No photo",
+      "conflict": "The profile was changed elsewhere. It has been refreshed."
     },
     "attributes": {
-        "title": "Attribute Library",
-        "searchPlaceholder": "Search by name...",
-        "categoryFilter": "Category",
-        "allCategories": "All categories",
-        "recentlyUsed": "Recently used",
-        "loading": "Loading...",
-        "empty": "No attributes found.",
-        "systemBadge": "System",
-        "systemNoDelete": "System attributes cannot be deleted",
-        "selectAll": "Select all",
-        "conflict": "This attribute was changed by someone else. The list has been refreshed.",
-        "table": {
-            "name": "Name",
-            "category": "Category",
-            "type": "Type",
-            "description": "Description"
-        },
-        "types": {
-            "STRING": "Text",
-            "TEXT": "Long text",
-            "IMAGE": "Image",
-            "NUMBER": "Number",
-            "DATE": "Date",
-            "DATE_RANGE": "Date range",
-            "BOOLEAN": "Yes/No",
-            "SELECT": "Select"
-        },
-        "toolbar": {
-            "create": "Create",
-            "edit": "Edit",
-            "delete": "Delete"
-        },
-        "form": {
-            "createTitle": "Create attribute",
-            "editTitle": "Edit attribute",
-            "name": "Name",
-            "description": "Description",
-            "category": "Category",
-            "type": "Type",
-            "options": "Options",
-            "optionPlaceholder": "Option {{n}}",
-            "addOption": "Add option",
-            "cancel": "Cancel",
-            "save": "Save"
-        },
-        "deleteConfirm": {
-            "title": "Delete attribute",
-            "body": "Delete \"{{name}}\"? This cannot be undone."
-        }
+      "uncategorized": "Other"
     },
-    "admin": {
-        "title": "Administration",
-        "searchPlaceholder": "Search by name or email...",
-        "loading": "Loading...",
-        "empty": "No users found.",
-        "selectAll": "Select all",
-        "conflict": "This user was changed by someone else. The list has been refreshed.",
-        "table": {
-            "name": "Name",
-            "email": "Email",
-            "roles": "Roles",
-            "status": "Status",
-            "createdAt": "Registered"
-        },
-        "status": {
-            "active": "Active",
-            "blocked": "Blocked"
-        },
-        "roles": {
-            "CANDIDATE": "Candidate",
-            "RECRUITER": "Recruiter",
-            "ADMIN": "Admin"
-        },
-        "toolbar": {
-            "viewProfile": "View profile",
-            "block": "Block",
-            "unblock": "Unblock",
-            "manageRoles": "Manage roles",
-            "delete": "Delete"
-        },
-        "roleModal": {
-            "title": "Roles for {{name}}",
-            "cancel": "Cancel",
-            "save": "Save"
-        },
-        "deleteConfirm": {
-            "title": "Delete user(s)",
-            "body": "Delete \"{{names}}\"? This cannot be undone."
-        }
-    },
-    "auth": {
-        "loginTitle": "Log in",
-        "registerTitle": "Register",
-        "email": "Email",
-        "password": "Password",
-        "firstName": "First name",
-        "lastName": "Last name",
-        "noAccount": "No account?",
-        "haveAccount": "Already have an account?",
-        "submitLogin": "Log in",
-        "submitRegister": "Register"
-    },
-    "profile": {
-        "title": "Profile",
-        "roles": "Roles",
-        "conflict": "This was changed elsewhere. The data has been refreshed.",
-        "forbidden": "You don't have access to this profile.",
-        "tabs": {
-            "about": "About me",
-            "info": "Information",
-            "projects": "Projects",
-            "resumes": "Resumes"
-        },
-        "image": {
-            "dropHint": "Drag & drop an image here, or click to choose one",
-            "uploading": "Uploading...",
-            "preview": "Profile photo",
-            "remove": "Remove photo",
-            "invalid": "Image must be PNG, JPEG, WebP or GIF, up to 5MB.",
-            "uploadFailed": "Upload failed. Please try again.",
-            "conflict": "Your profile was changed elsewhere. It has been refreshed."
-        },
-        "about": {
-            "firstName": "First name",
-            "lastName": "Last name",
-            "location": "Location"
-        },
-        "markdown": {
-            "edit": "Edit",
-            "preview": "Preview"
-        },
-        "info": {
-            "add": "Add attribute",
-            "remove": "Remove selected",
-            "empty": "No attributes added yet. Use \"Add attribute\" to pick from the library.",
-            "attribute": "Attribute",
-            "category": "Category",
-            "value": "Value",
-            "selectPlaceholder": "Choose...",
-            "pickerTitle": "Add attributes",
-            "cancel": "Cancel"
-        },
-        "projects": {
-            "create": "Create",
-            "edit": "Edit",
-            "delete": "Delete",
-            "empty": "No projects yet.",
-            "titleColumn": "Title",
-            "titleField": "Title",
-            "period": "Period",
-            "description": "Description",
-            "tags": "Tags",
-            "tagsPlaceholder": "Add a tag...",
-            "createTitle": "Create project",
-            "editTitle": "Edit project",
-            "startDate": "Start date",
-            "endDate": "End date",
-            "cancel": "Cancel",
-            "save": "Save",
-            "deleteConfirmTitle": "Delete project",
-            "deleteConfirmBody": "Delete \"{{title}}\"? This cannot be undone."
-        },
-        "resumes": {
-            "empty": "No resumes yet. They will appear here once you're granted access to a position.",
-            "position": "Position",
-            "status": "Status",
-            "likes": "Likes"
-        }
-    },
-    "resume": {
-        "loading": "Loading...",
-        "conflict": "This resume was changed elsewhere. It has been refreshed.",
-        "publish": "Publish",
-        "like": "Like",
-        "unlike": "Unlike",
-        "status": {
-            "DRAFT": "Draft",
-            "PUBLISHED": "Published"
-        },
-        "identity": {
-            "title": "Candidate",
-            "noPhoto": "No photo",
-            "conflict": "The profile was changed elsewhere. It has been refreshed."
-        },
-        "attributes": {
-            "uncategorized": "Other"
-        },
-        "projects": {
-            "title": "Projects",
-            "empty": "No matching projects."
-        }
+    "projects": {
+      "title": "Projects",
+      "empty": "No matching projects."
     }
+  }
 }

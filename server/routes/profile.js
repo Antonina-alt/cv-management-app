@@ -6,6 +6,7 @@ import { updateWithVersion, deleteWithVersion } from "../lib/optimisticLock.js";
 import { buildValueData } from "../lib/attributeValues.js";
 import { resolveTagIds } from "../lib/tags.js";
 import { candidateHasPositionAccess } from "../lib/positionAccess.js";
+import { validateProjectDates } from "../lib/projectDates.js";
 
 const router = express.Router();
 
@@ -192,23 +193,30 @@ router.delete("/:candidateId/attribute-values/:valueId", requireAuth, requireSel
     res.status(204).send();
 });
 
-const buildProjectCreateData = (candidateId, body, tagIds) => ({
+const buildProjectCreateData = (candidateId, body, tagIds, dateData) => ({
     candidateId,
     title: body.title.trim(),
     description: body.description ?? null,
-    startDate: body.startDate ? new Date(body.startDate) : null,
-    endDate: body.endDate ? new Date(body.endDate) : null,
+    ...dateData,
     tags: { create: tagIds.map((tagId) => ({ tagId })) },
 });
 
 router.post("/:candidateId/projects", requireAuth, requireSelfOrAdmin("candidateId"), async (req, res) => {
     const { candidateId } = req.params;
     const body = req.body ?? {};
-    if (!body.title) return res.status(400).json({ message: "title is required" });
+    if (typeof body.title !== "string" || !body.title.trim()) {
+        return res.status(400).json({ message: "title is required" });
+    }
+
+    const { data: dateData, error: dateError } = validateProjectDates(body);
+
+    if (dateError) {
+        return res.status(400).json(dateError);
+    }
 
     const project = await prisma.$transaction(async (tx) => {
         const tagIds = await resolveTagIds(tx, Array.isArray(body.tags) ? body.tags : []);
-        return tx.project.create({ data: buildProjectCreateData(candidateId, body, tagIds), include: projectInclude });
+        return tx.project.create({ data: buildProjectCreateData(candidateId, body, tagIds, dateData), include: projectInclude });
     });
 
     res.status(201).json(project);
@@ -216,9 +224,7 @@ router.post("/:candidateId/projects", requireAuth, requireSelfOrAdmin("candidate
 
 const PROJECT_FIELDS = {
     title: (v) => v.trim(),
-    description: (v) => v,
-    startDate: (v) => (v ? new Date(v) : null),
-    endDate: (v) => (v ? new Date(v) : null),
+    description: (v) => v
 };
 
 const buildProjectUpdateData = (body) => {
@@ -251,8 +257,15 @@ router.patch("/:candidateId/projects/:projectId", requireAuth, requireSelfOrAdmi
     const current = await prisma.project.findUnique({ where: { id: projectId } });
     if (!current || current.candidateId !== candidateId) return res.status(404).json({ message: "project not found" });
 
+    const { data: dateData, error: dateError } = validateProjectDates(body, current);
+
+    if (dateError) {
+        return res.status(400).json(dateError);
+    }
+
+    const data = { ...buildProjectUpdateData(body), ...dateData };
+
     try {
-        const data = buildProjectUpdateData(body);
         const updated = await prisma.$transaction((tx) => applyProjectUpdate(tx, projectId, body.version, data, body.tags));
         res.status(200).json(updated);
     } catch (err) {

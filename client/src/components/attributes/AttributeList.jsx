@@ -1,17 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Form } from 'react-bootstrap'
 import { useTranslation } from 'react-i18next'
-import DataTable from 'datatables.net-react'
-import DT from 'datatables.net-bs5'
-import 'datatables.net-bs5/css/dataTables.bootstrap5.css'
 import { listAttributeCategories, listAttributes } from '../../api/attributes.js'
 import { getRecentAttributeIds } from '../../lib/recentAttributes.js'
 import { useAsyncData } from '../../hooks/useAsyncData.js'
-import { wireCheckboxCell } from '../../lib/dataTableCheckbox.js'
+import CommonDataTable, { TABLE_MODE } from '../common/CommonDataTable.jsx'
 import AttributeTypeBadge from './AttributeTypeBadge.jsx'
-
-// eslint-disable-next-line react-hooks/rules-of-hooks -- DataTables static registration, not a React hook
-DataTable.use(DT)
 
 const AttributeList = ({ selectedIds = [], onToggleRow, onToggleAll, refreshToken, excludeIds, excludeSystem }) => {
     const { t } = useTranslation()
@@ -24,24 +18,12 @@ const AttributeList = ({ selectedIds = [], onToggleRow, onToggleAll, refreshToke
         { debounceMs: 200 },
     )
     const attributes = loaded ?? []
-    const dtRef = useRef(null)
-    const headerCheckboxRef = useRef(null)
-    const onToggleRowRef = useRef(onToggleRow)
-    const onToggleAllRef = useRef(onToggleAll)
-    const attributesRef = useRef(attributes)
 
     const visibleAttributes = useMemo(
-        () => attributes.filter((a) => (!excludeSystem || !a.systemKey) && (!excludeIds || !excludeIds.includes(a.id))),
-        [attributes, excludeSystem, excludeIds],
+        () => attributes.filter((attribute) => ((!excludeSystem || !attribute.systemKey) && (!excludeIds || !excludeIds.includes(attribute.id)))),
+        [attributes, excludeIds, excludeSystem],
     )
 
-    useEffect(() => {
-        onToggleRowRef.current = onToggleRow
-        onToggleAllRef.current = onToggleAll
-        attributesRef.current = visibleAttributes
-    })
-
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     const recentIds = useMemo(() => getRecentAttributeIds(), [refreshToken])
 
     useEffect(() => {
@@ -49,107 +31,70 @@ const AttributeList = ({ selectedIds = [], onToggleRow, onToggleAll, refreshToke
     }, [])
 
     const recentAttributes = useMemo(
-        () => recentIds
-            .map((id) => visibleAttributes.find((a) => a.id === id))
-            .filter(Boolean),
+        () => recentIds.map((id) => visibleAttributes.find((attribute) => attribute.id === id)).filter(Boolean),
         [recentIds, visibleAttributes],
     )
 
     const columns = useMemo(() => [
-        { data: null, title: '', orderable: false, className: 'dt-checkbox-column', width: '1%' },
-        { data: 'name', title: t('attributes.table.name') },
+        {
+            data: 'name',
+            title: t('attributes.table.name'),
+            render: (data, row) => (
+                <>
+                    {row.name}
+                    {row.systemKey && <span className="badge text-bg-info ms-2">{t('attributes.systemBadge')}</span>}
+                </>
+            ),
+        },
         { data: (row) => row.category?.name ?? '', title: t('attributes.table.category') },
-        { data: 'type', title: t('attributes.table.type') },
+        {
+            data: 'type',
+            title: t('attributes.table.type'),
+            render: (data, row) => <AttributeTypeBadge type={row.type} />,
+        },
         { data: 'description', title: t('attributes.table.description') },
     ], [t])
 
-    const slots = useMemo(() => ({
-        1: (data, row) => (
-            <>
-                {row.name}
-                {row.systemKey && (
-                    <span className="badge text-bg-info ms-2">{t('attributes.systemBadge')}</span>
-                )}
-            </>
-        ),
-        3: (data, row) => <AttributeTypeBadge type={row.type} />,
-        4: (data, row) => (
-            <span className="text-truncate d-inline-block" style={{ maxWidth: 320 }}>{row.description}</span>
-        ),
-    }), [t])
-
-    const options = useMemo(() => ({
-        searching: false,
-        autoWidth: false,
-        language: { emptyTable: t('attributes.empty') },
-        createdRow: (row, data) => {
-            row.style.cursor = onToggleRowRef.current ? 'pointer' : ''
-            row.onclick = () => onToggleRowRef.current?.(data)
-            wireCheckboxCell(row.cells[0], data.name, () => onToggleRowRef.current?.(data))
-        },
-        initComplete: function initComplete() {
-            const headerCell = this.api().table().header().querySelector('th')
-            wireCheckboxCell(headerCell, t('attributes.selectAll'), (checked) => onToggleAllRef.current?.(attributesRef.current, checked))
-            headerCheckboxRef.current = headerCell.querySelector('input')
-        },
-    }), [t])
-
-    useEffect(() => {
-        const api = dtRef.current?.dt()
-        if (!api) return
-        api.rows().every(function syncSelected() {
-            const node = this.node()
-            if (!node) return
-            const isSelected = selectedIds.includes(this.data().id)
-            node.classList.toggle('table-active', isSelected)
-            const checkbox = node.querySelector('input[type="checkbox"]')
-            if (checkbox) checkbox.checked = isSelected
-        })
-
-        const headerCheckbox = headerCheckboxRef.current
-        if (headerCheckbox) {
-            const selectedCount = visibleAttributes.filter((a) => selectedIds.includes(a.id)).length
-            headerCheckbox.checked = visibleAttributes.length > 0 && selectedCount === visibleAttributes.length
-            headerCheckbox.indeterminate = selectedCount > 0 && selectedCount < visibleAttributes.length
-        }
-    }, [selectedIds, visibleAttributes])
+    const mode = onToggleRow ? TABLE_MODE.MULTIPLE : TABLE_MODE.READ_ONLY
 
     return (
         <div>
-            <div className="d-flex flex-wrap gap-2 mb-3">
-                <Form.Control
-                    type="search"
-                    style={{ maxWidth: 280 }}
-                    placeholder={t('attributes.searchPlaceholder')}
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                    aria-label={t('attributes.searchPlaceholder')}
-                />
-                <Form.Select
-                    style={{ maxWidth: 220 }}
-                    value={categoryId}
-                    onChange={(e) => setCategoryId(e.target.value)}
-                    aria-label={t('attributes.categoryFilter')}
-                >
-                    <option value="">{t('attributes.allCategories')}</option>
-                    {categories.map((c) => (
-                        <option key={c.id} value={c.id}>{c.name}</option>
-                    ))}
-                </Form.Select>
+            <div className="row g-2 mb-3">
+                <div className="col-12 col-md-6 col-lg-4">
+                    <Form.Control
+                        type="search"
+                        placeholder={t('attributes.searchPlaceholder')}
+                        value={query}
+                        onChange={(event) => setQuery(event.target.value)}
+                        aria-label={t('attributes.searchPlaceholder')}
+                    />
+                </div>
+                <div className="col-12 col-md-6 col-lg-3">
+                    <Form.Select
+                        value={categoryId}
+                        onChange={(event) => setCategoryId(event.target.value)}
+                        aria-label={t('attributes.categoryFilter')}
+                    >
+                        <option value="">{t('attributes.allCategories')}</option>
+                        {categories.map((category) => (
+                            <option key={category.id} value={category.id}>{category.name}</option>
+                        ))}
+                    </Form.Select>
+                </div>
             </div>
 
             {recentAttributes.length > 0 && (
                 <div className="mb-3">
                     <div className="text-muted small mb-1">{t('attributes.recentlyUsed')}</div>
                     <div className="d-flex flex-wrap gap-2">
-                        {recentAttributes.map((attr) => (
+                        {recentAttributes.map((attribute) => (
                             <button
-                                key={attr.id}
+                                key={attribute.id}
                                 type="button"
-                                className={`btn btn-sm ${selectedIds.includes(attr.id) ? 'btn-primary' : 'btn-outline-secondary'}`}
-                                onClick={() => onToggleRow?.(attr)}
+                                className={`btn btn-sm ${selectedIds.includes(attribute.id) ? 'btn-primary' : 'btn-outline-secondary'}`}
+                                onClick={() => onToggleRow?.(attribute)}
                             >
-                                {attr.name}
+                                {attribute.name}
                             </button>
                         ))}
                     </div>
@@ -159,13 +104,15 @@ const AttributeList = ({ selectedIds = [], onToggleRow, onToggleAll, refreshToke
             {error && <div className="alert alert-danger">{error}</div>}
             {loading && <div className="text-muted mb-2">{t('attributes.loading')}</div>}
 
-            <DataTable
-                ref={dtRef}
+            <CommonDataTable
                 data={loading ? [] : visibleAttributes}
                 columns={columns}
-                slots={slots}
-                options={options}
-                className="table table-hover"
+                emptyMessage={t('attributes.empty')}
+                mode={mode}
+                selectedIds={selectedIds}
+                onToggleRow={onToggleRow}
+                onToggleAll={onToggleAll}
+                getRowLabel={(attribute) => attribute.name}
             />
         </div>
     )

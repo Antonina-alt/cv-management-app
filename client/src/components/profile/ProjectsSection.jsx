@@ -1,43 +1,25 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Button, Modal } from 'react-bootstrap'
 import { useTranslation } from 'react-i18next'
-import DataTable from 'datatables.net-react'
-import DT from 'datatables.net-bs5'
-import 'datatables.net-bs5/css/dataTables.bootstrap5.css'
+import CommonDataTable, { TABLE_MODE } from '../common/CommonDataTable.jsx'
 import ProjectFormModal from './ProjectFormModal.jsx'
 import { createProject, deleteProject, updateProject } from '../../api/profile.js'
 import { ConflictError } from '../../api/http.js'
 import { useIdSelection } from '../../hooks/useIdSelection.js'
-import { wireCheckboxCell } from '../../lib/dataTableCheckbox.js'
+import { formatDateRange } from '../../lib/formatDate.js'
 
-// eslint-disable-next-line react-hooks/rules-of-hooks -- DataTables static registration, not a React hook
-DataTable.use(DT)
-
-const formatDate = (value) => (value ? new Date(value).toLocaleDateString() : '')
-const formatPeriod = (row) => `${formatDate(row.startDate)} – ${formatDate(row.endDate)}`
 const formatTags = (row) => row.tags.map((tag) => tag.tag.name).join(', ')
 
 const ProjectsSection = ({ candidateId, initialProjects, onConflict }) => {
-    const { t } = useTranslation()
+    const { t, i18n } = useTranslation()
     const [projects, setProjects] = useState(initialProjects)
     const selection = useIdSelection()
     const [modal, setModal] = useState(null)
     const [formError, setFormError] = useState(null)
     const [banner, setBanner] = useState(null)
-    const dtRef = useRef(null)
-    const headerCheckboxRef = useRef(null)
-    const onToggleRowRef = useRef(null)
-    const onToggleAllRef = useRef(null)
-    const projectsRef = useRef(projects)
 
-    const selected = projects.filter((p) => selection.ids.includes(p.id))
+    const selected = projects.filter((project) => selection.ids.includes(project.id))
     const singleSelected = selected.length === 1 ? selected[0] : null
-
-    useEffect(() => {
-        onToggleRowRef.current = (row) => selection.toggle(row.id)
-        onToggleAllRef.current = selection.toggleAll
-        projectsRef.current = projects
-    })
 
     const closeModal = () => {
         setModal(null)
@@ -47,94 +29,62 @@ const ProjectsSection = ({ candidateId, initialProjects, onConflict }) => {
     const handleCreate = async (payload) => {
         try {
             const created = await createProject(candidateId, payload)
-            setProjects((prev) => [created, ...prev])
+            setProjects((previous) => [created, ...previous])
             setBanner(null)
             closeModal()
-        } catch (err) {
-            setFormError(err.message)
+        } catch (error) {
+            setFormError(error.message)
         }
     }
 
     const handleEdit = async (payload) => {
         try {
-            const updated = await updateProject(candidateId, singleSelected.id, { ...payload, version: singleSelected.version })
-            setProjects((prev) => prev.map((p) => (p.id === updated.id ? updated : p)))
+            const updated = await updateProject(candidateId, singleSelected.id, {
+                ...payload,
+                version: singleSelected.version,
+            })
+            setProjects((previous) => previous.map((project) => (project.id === updated.id ? updated : project)))
             selection.setIds([])
             setBanner(null)
             closeModal()
-        } catch (err) {
-            if (err instanceof ConflictError) {
+        } catch (error) {
+            if (error instanceof ConflictError) {
                 selection.setIds([])
                 closeModal()
                 onConflict?.()
             } else {
-                setFormError(err.message)
+                setFormError(error.message)
             }
         }
     }
 
     const handleDelete = async () => {
         try {
-            await Promise.all(selected.map((p) => deleteProject(candidateId, p.id, p.version)))
-            setProjects((prev) => prev.filter((p) => !selection.ids.includes(p.id)))
+            await Promise.all(selected.map((project) => deleteProject(candidateId, project.id, project.version)))
+            setProjects((previous) => previous.filter((project) => !selection.ids.includes(project.id)))
             setBanner(null)
-        } catch (err) {
-            if (err instanceof ConflictError) onConflict?.()
-            else setBanner(err.message)
+        } catch (error) {
+            if (error instanceof ConflictError) onConflict?.()
+            else setBanner(error.message)
         }
         selection.setIds([])
         closeModal()
     }
 
     const columns = useMemo(() => [
-        { data: null, title: '', orderable: false, className: 'dt-checkbox-column', width: '1%' },
         { data: 'title', title: t('profile.projects.titleColumn') },
-        { data: null, title: t('profile.projects.period'), orderable: false },
+        {
+            data: (row) => formatDateRange(row.startDate, row.endDate, i18n.resolvedLanguage),
+            title: t('profile.projects.period'),
+            orderable: false,
+        },
         { data: 'description', title: t('profile.projects.description') },
-        { data: null, title: t('profile.projects.tags'), orderable: false },
-    ], [t])
-
-    const slots = useMemo(() => ({
-        2: (data, row) => <>{formatPeriod(row)}</>,
-        3: (data, row) => <span className="text-truncate d-inline-block" style={{ maxWidth: 320 }}>{row.description}</span>,
-        4: (data, row) => <>{formatTags(row)}</>,
-    }), [])
-
-    const options = useMemo(() => ({
-        searching: false,
-        autoWidth: false,
-        language: { emptyTable: t('profile.projects.empty') },
-        createdRow: (row, data) => {
-            row.style.cursor = 'pointer'
-            row.onclick = () => onToggleRowRef.current?.(data)
-            wireCheckboxCell(row.cells[0], data.title, () => onToggleRowRef.current?.(data))
+        {
+            data: formatTags,
+            title: t('profile.projects.tags'),
+            orderable: false,
         },
-        initComplete: function initComplete() {
-            const headerCell = this.api().table().header().querySelector('th')
-            wireCheckboxCell(headerCell, t('attributes.selectAll'), (checked) => onToggleAllRef.current?.(projectsRef.current, checked))
-            headerCheckboxRef.current = headerCell.querySelector('input')
-        },
-    }), [t])
-
-    useEffect(() => {
-        const api = dtRef.current?.dt()
-        if (!api) return
-        api.rows().every(function syncSelected() {
-            const node = this.node()
-            if (!node) return
-            const isSelected = selection.ids.includes(this.data().id)
-            node.classList.toggle('table-active', isSelected)
-            const checkbox = node.querySelector('input[type="checkbox"]')
-            if (checkbox) checkbox.checked = isSelected
-        })
-
-        const headerCheckbox = headerCheckboxRef.current
-        if (headerCheckbox) {
-            const selectedCount = projects.filter((p) => selection.ids.includes(p.id)).length
-            headerCheckbox.checked = projects.length > 0 && selectedCount === projects.length
-            headerCheckbox.indeterminate = selectedCount > 0 && selectedCount < projects.length
-        }
-    }, [selection.ids, projects])
+    ], [i18n.resolvedLanguage, t])
 
     return (
         <div>
@@ -145,7 +95,7 @@ const ProjectsSection = ({ candidateId, initialProjects, onConflict }) => {
                 </div>
             )}
 
-            <div className="d-flex gap-2 mb-3">
+            <div className="d-flex flex-wrap gap-2 mb-3">
                 <Button variant="primary" onClick={() => setModal('create')}>
                     {t('profile.projects.create')}
                 </Button>
@@ -157,13 +107,15 @@ const ProjectsSection = ({ candidateId, initialProjects, onConflict }) => {
                 </Button>
             </div>
 
-            <DataTable
-                ref={dtRef}
+            <CommonDataTable
                 data={projects}
                 columns={columns}
-                slots={slots}
-                options={options}
-                className="table table-hover"
+                emptyMessage={t('profile.projects.empty')}
+                mode={TABLE_MODE.MULTIPLE}
+                selectedIds={selection.ids}
+                onToggleRow={(row) => selection.toggle(row.id)}
+                onToggleAll={selection.toggleAll}
+                getRowLabel={(row) => row.title}
             />
 
             {modal === 'create' && (
@@ -186,7 +138,7 @@ const ProjectsSection = ({ candidateId, initialProjects, onConflict }) => {
                     <Modal.Title>{t('profile.projects.deleteConfirmTitle')}</Modal.Title>
                 </Modal.Header>
                 <Modal.Body>
-                    {t('profile.projects.deleteConfirmBody', { title: selected.map((p) => p.title).join(', ') })}
+                    {t('profile.projects.deleteConfirmBody', { title: selected.map((project) => project.title).join(', ') })}
                 </Modal.Body>
                 <Modal.Footer>
                     <Button variant="secondary" onClick={closeModal}>

@@ -1,43 +1,50 @@
-import { Table } from 'react-bootstrap'
-import { Link } from 'react-router-dom'
+import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { listRecentPositions } from '../../api/home.js'
 import { useAsyncData } from '../../hooks/useAsyncData.js'
+import { useTableLink } from '../../hooks/useTableLink.js'
+import CommonDataTable from '../common/CommonDataTable.jsx'
 import AccessBadge from '../common/AccessBadge.jsx'
 
 const fetchRecent = () => listRecentPositions({ limit: 5 })
+const tableOptions = { paging: false, info: false, ordering: false }
 
 const RecentPositionsTable = () => {
     const { t } = useTranslation()
+    const tableLink = useTableLink()
     const { data, loading, error } = useAsyncData(fetchRecent, [])
     const positions = Array.isArray(data) ? data : []
 
+    const columns = useMemo(() => [
+        {
+            data: 'title',
+            title: t('positions.table.title'),
+            render: (value, row) => <a {...tableLink(`/positions/${row.id}`)}>{row.title}</a>,
+        },
+        { data: 'company', title: t('positions.table.company') },
+        {
+            data: 'level',
+            title: t('positions.table.level'),
+            render: (value, row) => (row.level ? t(`positions.levels.${row.level}`) : ''),
+        },
+        {
+            data: 'isPublic',
+            title: t('positions.table.access'),
+            render: (value, row) => <AccessBadge isPublic={row.isPublic} />,
+        },
+        { data: (row) => row._count?.resumes ?? 0, title: t('positions.table.resumes') },
+    ], [t, tableLink])
+
     if (error) return <div className="alert alert-danger">{error}</div>
-    if (!loading && positions.length === 0) return <p className="text-muted">{t('positions.empty')}</p>
+    if (loading) return <p className="text-muted">{t('positions.loading')}</p>
 
     return (
-        <Table hover responsive>
-            <thead>
-                <tr>
-                    <th>{t('positions.table.title')}</th>
-                    <th>{t('positions.table.company')}</th>
-                    <th>{t('positions.table.level')}</th>
-                    <th>{t('positions.table.access')}</th>
-                    <th>{t('positions.table.resumes')}</th>
-                </tr>
-            </thead>
-            <tbody>
-                {positions.map((position) => (
-                    <tr key={position.id}>
-                        <td><Link to={`/positions/${position.id}`}>{position.title}</Link></td>
-                        <td>{position.company}</td>
-                        <td>{position.level ? t(`positions.levels.${position.level}`) : ''}</td>
-                        <td><AccessBadge isPublic={position.isPublic} /></td>
-                        <td>{position._count?.resumes ?? 0}</td>
-                    </tr>
-                ))}
-            </tbody>
-        </Table>
+        <CommonDataTable
+            data={positions}
+            columns={columns}
+            emptyMessage={t('positions.empty')}
+            options={tableOptions}
+        />
     )
 }
 
