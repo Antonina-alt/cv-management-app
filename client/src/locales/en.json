@@ -34,7 +34,8 @@
     "register": "Register",
     "logout": "Log out",
     "toggleTheme": "Toggle theme",
-    "toggleNav": "Toggle navigation"
+    "toggleNav": "Toggle navigation",
+    "toggleLanguage": "Change language"
   },
   "home": {
     "title": "Home",

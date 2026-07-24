@@ -39,8 +39,7 @@ const ResumeAttributeField = ({ attribute, value, editable, onSave, onEmptyChang
 
     useEffect(() => {
         onEmptyChange(value.attributeId, empty)
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [empty])
+    }, [empty, onEmptyChange, value.attributeId])
 
     const handleChange = (fields) => {
         setLocal((prev) => {

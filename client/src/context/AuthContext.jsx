@@ -18,8 +18,23 @@ export const AuthProvider = ({ children }) => {
     }, [])
 
     useEffect(() => {
-        refresh()
-    }, [refresh])
+        let active = true
+
+        authApi.me()
+            .then((current) => {
+                if (active) setUser(current)
+            })
+            .catch(() => {
+                if (active) setUser(null)
+            })
+            .finally(() => {
+                if (active) setLoading(false)
+            })
+
+        return () => {
+            active = false
+        }
+    }, [])
 
     const login = async (credentials) => {
         const current = await authApi.login(credentials)

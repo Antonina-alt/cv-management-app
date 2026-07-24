@@ -12,7 +12,7 @@ const tableOptions = { paging: false, info: false, ordering: false }
 const RecentPositionsTable = () => {
     const { t } = useTranslation()
     const tableLink = useTableLink()
-    const { data, loading, error } = useAsyncData(fetchRecent, [])
+    const { data, loading, error } = useAsyncData(fetchRecent)
     const positions = Array.isArray(data) ? data : []
 
     const columns = useMemo(() => [

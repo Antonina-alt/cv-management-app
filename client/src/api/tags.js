@@ -1,8 +1,3 @@
-import { apiRequest } from './http.js';
+import { get, withQuery } from './http.js'
 
-export const searchTags = (q) => {
-    const params = new URLSearchParams();
-    if (q) params.set('q', q);
-    const qs = params.toString();
-    return apiRequest(`/api/tags${qs ? `?${qs}` : ''}`, { method: 'GET' });
-};
+export const searchTags = (q) => get(withQuery('/api/tags', { q }))

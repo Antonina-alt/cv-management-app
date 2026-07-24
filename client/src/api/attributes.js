@@ -1,20 +1,7 @@
-import { apiRequest } from './http.js';
+import { get, patch, post, remove, withQuery } from './http.js'
 
-export const listAttributeCategories = () => apiRequest('/api/attribute-categories', { method: 'GET' });
-
-export const listAttributes = ({ q, categoryId } = {}) => {
-    const params = new URLSearchParams();
-    if (q) params.set('q', q);
-    if (categoryId) params.set('categoryId', categoryId);
-    const qs = params.toString();
-    return apiRequest(`/api/attributes${qs ? `?${qs}` : ''}`, { method: 'GET' });
-};
-
-export const createAttribute = (data) =>
-    apiRequest('/api/attributes', { method: 'POST', body: JSON.stringify(data) });
-
-export const updateAttribute = (id, data) =>
-    apiRequest(`/api/attributes/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
-
-export const deleteAttribute = (id, version) =>
-    apiRequest(`/api/attributes/${id}`, { method: 'DELETE', body: JSON.stringify({ version }) });
+export const listAttributeCategories = () => get('/api/attribute-categories')
+export const listAttributes = ({ q, categoryId } = {}) => get(withQuery('/api/attributes', { q, categoryId }))
+export const createAttribute = (data) => post('/api/attributes', data)
+export const updateAttribute = (id, data) => patch(`/api/attributes/${id}`, data)
+export const deleteAttribute = (id, version) => remove(`/api/attributes/${id}`, { version })

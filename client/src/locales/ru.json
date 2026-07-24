@@ -34,7 +34,8 @@
     "register": "Регистрация",
     "logout": "Выйти",
     "toggleTheme": "Переключить тему",
-    "toggleNav": "Открыть меню"
+    "toggleNav": "Открыть меню",
+    "toggleLanguage": "Сменить язык"
   },
   "home": {
     "title": "Главная",

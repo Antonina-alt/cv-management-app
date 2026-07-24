@@ -1,137 +1,75 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Button, Modal } from 'react-bootstrap'
 import { useTranslation } from 'react-i18next'
-import { useAuth } from '../context/auth-context.js'
-import { createPosition, deletePosition, duplicatePosition } from '../api/positions.js'
 import { ConflictError } from '../api/http.js'
-import { useObjectSelection } from '../hooks/useObjectSelection.js'
-import PositionList from '../components/positions/PositionList.jsx'
+import { createPosition, deletePosition, duplicatePosition } from '../api/positions.js'
+import ConfirmationModal from '../components/common/ConfirmationModal.jsx'
+import DismissibleAlert from '../components/common/DismissibleAlert.jsx'
+import Toolbar from '../components/common/Toolbar.jsx'
 import PositionFormModal from '../components/positions/PositionFormModal.jsx'
+import PositionList from '../components/positions/PositionList.jsx'
+import { useAuth } from '../context/auth-context.js'
+import { useSelection } from '../hooks/useSelection.js'
 
 const PositionsPage = () => {
     const { t } = useTranslation()
     const { user } = useAuth()
     const navigate = useNavigate()
-    const canManage = Boolean(user) && (user.roles.includes('RECRUITER') || user.roles.includes('ADMIN'))
-    const selection = useObjectSelection()
-
+    const selection = useSelection()
     const [refreshToken, setRefreshToken] = useState(0)
     const [modal, setModal] = useState(null)
     const [formError, setFormError] = useState(null)
     const [banner, setBanner] = useState(null)
-
-    const refresh = () => setRefreshToken((v) => v + 1)
-    const singleSelected = selection.items.length === 1 ? selection.items[0] : null
-
+    const canManage = Boolean(user) && user.roles.some((role) => ['RECRUITER', 'ADMIN'].includes(role))
+    const refresh = () => setRefreshToken((value) => value + 1)
     const closeModal = () => {
         setModal(null)
         setFormError(null)
     }
-
-    const handleCreateSubmit = async (payload) => {
+    const handleCreate = async (payload) => {
         try {
             const created = await createPosition(payload)
             closeModal()
-            refresh()
             navigate(`/positions/${created.id}`)
-        } catch (err) {
-            setFormError(err.message)
+        } catch (error) {
+            setFormError(error.message)
         }
     }
-
-    const handleOpen = () => {
-        if (singleSelected) navigate(`/positions/${singleSelected.id}`)
-    }
-
     const handleDuplicate = async () => {
-        if (selection.items.length === 0) return
         try {
-            await Promise.all(selection.items.map((p) => duplicatePosition(p.id)))
+            await Promise.all(selection.items.map(({ id }) => duplicatePosition(id)))
             setBanner(null)
-        } catch (err) {
-            setBanner(err.message)
+        } catch (error) {
+            setBanner(error.message)
         }
         selection.clear()
         refresh()
     }
-
-    const handleDeleteConfirm = async () => {
+    const handleDelete = async () => {
         try {
-            await Promise.all(selection.items.map((p) => deletePosition(p.id, p.version)))
+            await Promise.all(selection.items.map(({ id, version }) => deletePosition(id, version)))
             setBanner(null)
-        } catch (err) {
-            setBanner(err instanceof ConflictError ? t('positions.conflict') : err.message)
+        } catch (error) {
+            setBanner(error instanceof ConflictError ? t('positions.conflict') : error.message)
         }
         selection.clear()
         closeModal()
         refresh()
     }
-
+    const actions = canManage ? [
+        { key: 'create', label: t('positions.toolbar.create'), variant: 'primary', onClick: () => setModal('create') },
+        { key: 'open', label: t('positions.toolbar.open'), variant: 'outline-primary', disabled: !selection.single, onClick: () => navigate(`/positions/${selection.single.id}`) },
+        { key: 'duplicate', label: t('positions.toolbar.duplicate'), variant: 'outline-primary', disabled: !selection.items.length, onClick: handleDuplicate },
+        { key: 'delete', label: t('positions.toolbar.delete'), variant: 'outline-danger', disabled: !selection.items.length, onClick: () => setModal('delete') },
+    ] : []
     return (
         <div>
             <h1>{t('positions.title')}</h1>
-
-            {banner && (
-                <div className="alert alert-warning alert-dismissible" role="alert">
-                    {banner}
-                    <button type="button" className="btn-close" onClick={() => setBanner(null)} />
-                </div>
-            )}
-
-            {canManage && (
-                <div className="d-flex flex-wrap gap-2 mb-3">
-                    <Button variant="primary" onClick={() => setModal('create')}>
-                        {t('positions.toolbar.create')}
-                    </Button>
-                    <Button variant="outline-primary" disabled={!singleSelected} onClick={handleOpen}>
-                        {t('positions.toolbar.open')}
-                    </Button>
-                    <Button variant="outline-primary" disabled={selection.items.length === 0} onClick={handleDuplicate}>
-                        {t('positions.toolbar.duplicate')}
-                    </Button>
-                    <Button
-                        variant="outline-danger"
-                        disabled={selection.items.length === 0}
-                        onClick={() => setModal('delete')}
-                    >
-                        {t('positions.toolbar.delete')}
-                    </Button>
-                </div>
-            )}
-
-            <PositionList
-                selectedIds={canManage ? selection.items.map((p) => p.id) : []}
-                onToggleRow={canManage ? selection.toggle : undefined}
-                onToggleAll={canManage ? selection.toggleAll : undefined}
-                refreshToken={refreshToken}
-            />
-
-            {modal === 'create' && (
-                <PositionFormModal
-                    show
-                    onClose={closeModal}
-                    onSubmit={handleCreateSubmit}
-                    error={formError}
-                />
-            )}
-
-            <Modal show={modal === 'delete'} onHide={closeModal}>
-                <Modal.Header closeButton>
-                    <Modal.Title>{t('positions.deleteConfirm.title')}</Modal.Title>
-                </Modal.Header>
-                <Modal.Body>
-                    {t('positions.deleteConfirm.body', { titles: selection.items.map((p) => p.title).join(', ') })}
-                </Modal.Body>
-                <Modal.Footer>
-                    <Button variant="secondary" onClick={closeModal}>
-                        {t('positions.form.cancel')}
-                    </Button>
-                    <Button variant="danger" onClick={handleDeleteConfirm}>
-                        {t('positions.toolbar.delete')}
-                    </Button>
-                </Modal.Footer>
-            </Modal>
+            <DismissibleAlert onClose={() => setBanner(null)}>{banner}</DismissibleAlert>
+            {canManage && <Toolbar actions={actions} />}
+            <PositionList selectedIds={canManage ? selection.ids : []} onToggleRow={canManage ? selection.toggle : undefined} onToggleAll={canManage ? selection.toggleAll : undefined} refreshToken={refreshToken} />
+            {modal === 'create' && <PositionFormModal show onClose={closeModal} onSubmit={handleCreate} error={formError} />}
+            <ConfirmationModal show={modal === 'delete'} onCancel={closeModal} onConfirm={handleDelete} title={t('positions.deleteConfirm.title')} body={t('positions.deleteConfirm.body', { titles: selection.items.map(({ title }) => title).join(', ') })} cancelLabel={t('positions.form.cancel')} confirmLabel={t('positions.toolbar.delete')} />
         </div>
     )
 }

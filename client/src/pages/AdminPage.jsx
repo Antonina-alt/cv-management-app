@@ -1,162 +1,85 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Button, Modal } from 'react-bootstrap'
 import { useTranslation } from 'react-i18next'
-import { useAuth } from '../context/auth-context.js'
-import { setUserBlocked, deleteUser, assignRole, removeRole } from '../api/admin.js'
+import { assignRole, deleteUser, removeRole, setUserBlocked } from '../api/admin.js'
 import { ConflictError } from '../api/http.js'
-import { useObjectSelection } from '../hooks/useObjectSelection.js'
-import { formatName } from '../lib/formatName.js'
-import UserList from '../components/admin/UserList.jsx'
 import RoleModal from '../components/admin/RoleModal.jsx'
+import UserList from '../components/admin/UserList.jsx'
+import ConfirmationModal from '../components/common/ConfirmationModal.jsx'
+import DismissibleAlert from '../components/common/DismissibleAlert.jsx'
+import Toolbar from '../components/common/Toolbar.jsx'
+import { useAuth } from '../context/auth-context.js'
+import { useSelection } from '../hooks/useSelection.js'
+import { formatName } from '../lib/formatName.js'
 
 const AdminPage = () => {
     const { t } = useTranslation()
     const { user, refresh } = useAuth()
     const navigate = useNavigate()
-    const selection = useObjectSelection()
-
+    const selection = useSelection()
     const [refreshToken, setRefreshToken] = useState(0)
     const [modal, setModal] = useState(null)
     const [formError, setFormError] = useState(null)
     const [banner, setBanner] = useState(null)
-
-    const refreshList = () => setRefreshToken((v) => v + 1)
-    const singleSelected = selection.items.length === 1 ? selection.items[0] : null
-    const selectionIncludesSelf = selection.items.some((u) => u.id === user.id)
-
+    const refreshList = () => setRefreshToken((value) => value + 1)
     const closeModal = () => {
         setModal(null)
         setFormError(null)
     }
-
-    const handleViewProfile = () => {
-        if (singleSelected) navigate(`/profile/${singleSelected.id}`)
-    }
-
-    const setBlockedForSelection = async (isBlocked) => {
+    const setBlocked = async (isBlocked) => {
         const targets = isBlocked
-            ? selection.items.filter((u) => !u.isBlocked && u.id !== user.id)
-            : selection.items.filter((u) => u.isBlocked)
+            ? selection.items.filter((item) => !item.isBlocked && item.id !== user.id)
+            : selection.items.filter((item) => item.isBlocked)
         try {
-            await Promise.all(targets.map((u) => setUserBlocked(u.id, isBlocked, u.version)))
+            await Promise.all(targets.map((item) => setUserBlocked(item.id, isBlocked, item.version)))
             setBanner(null)
-        } catch (err) {
-            setBanner(err instanceof ConflictError ? t('admin.conflict') : err.message)
+        } catch (error) {
+            setBanner(error instanceof ConflictError ? t('admin.conflict') : error.message)
         }
         selection.clear()
         refreshList()
     }
-
-    const handleDeleteConfirm = async () => {
-        const targets = selection.items.filter((u) => u.id !== user.id)
+    const handleDelete = async () => {
         try {
-            await Promise.all(targets.map((u) => deleteUser(u.id, u.version)))
+            await Promise.all(selection.items.filter(({ id }) => id !== user.id).map(({ id, version }) => deleteUser(id, version)))
             setBanner(null)
-        } catch (err) {
-            setBanner(err instanceof ConflictError ? t('admin.conflict') : err.message)
+        } catch (error) {
+            setBanner(error instanceof ConflictError ? t('admin.conflict') : error.message)
         }
         selection.clear()
         closeModal()
         refreshList()
     }
-
-    const handleRoleSubmit = async ({ toAdd, toRemove }) => {
-        if (!singleSelected) return
+    const handleRoles = async ({ toAdd, toRemove }) => {
         try {
-            await Promise.all([
-                ...toAdd.map((role) => assignRole(singleSelected.id, role)),
-                ...toRemove.map((role) => removeRole(singleSelected.id, role)),
-            ])
+            await Promise.all([...toAdd.map((role) => assignRole(selection.single.id, role)), ...toRemove.map((role) => removeRole(selection.single.id, role))])
+            const removedOwnAdmin = selection.single.id === user.id && toRemove.includes('ADMIN')
             closeModal()
             selection.clear()
-
-            if (singleSelected.id === user.id && toRemove.includes('ADMIN')) {
+            if (removedOwnAdmin) {
                 await refresh()
                 navigate('/')
-                return
-            }
-
-            refreshList()
-        } catch (err) {
-            setFormError(err.message)
+            } else refreshList()
+        } catch (error) {
+            setFormError(error.message)
         }
     }
-
+    const includesSelf = selection.items.some(({ id }) => id === user.id)
+    const actions = [
+        { key: 'profile', label: t('admin.toolbar.viewProfile'), variant: 'outline-primary', disabled: !selection.single, onClick: () => navigate(`/profile/${selection.single.id}`) },
+        { key: 'block', label: t('admin.toolbar.block'), variant: 'outline-secondary', disabled: !selection.items.length || includesSelf || selection.items.every(({ isBlocked }) => isBlocked), onClick: () => setBlocked(true) },
+        { key: 'unblock', label: t('admin.toolbar.unblock'), variant: 'outline-secondary', disabled: !selection.items.length || selection.items.every(({ isBlocked }) => !isBlocked), onClick: () => setBlocked(false) },
+        { key: 'roles', label: t('admin.toolbar.manageRoles'), variant: 'outline-primary', disabled: !selection.single, onClick: () => setModal('roles') },
+        { key: 'delete', label: t('admin.toolbar.delete'), variant: 'outline-danger', disabled: !selection.items.length || includesSelf, onClick: () => setModal('delete') },
+    ]
     return (
         <div>
             <h1>{t('admin.title')}</h1>
-
-            {banner && (
-                <div className="alert alert-warning alert-dismissible" role="alert">
-                    {banner}
-                    <button type="button" className="btn-close" onClick={() => setBanner(null)} />
-                </div>
-            )}
-
-            <div className="d-flex flex-wrap gap-2 mb-3">
-                <Button variant="outline-primary" disabled={!singleSelected} onClick={handleViewProfile}>
-                    {t('admin.toolbar.viewProfile')}
-                </Button>
-                <Button
-                    variant="outline-secondary"
-                    disabled={selection.items.length === 0 || selectionIncludesSelf || selection.items.every((u) => u.isBlocked)}
-                    onClick={() => setBlockedForSelection(true)}
-                >
-                    {t('admin.toolbar.block')}
-                </Button>
-                <Button
-                    variant="outline-secondary"
-                    disabled={selection.items.length === 0 || selection.items.every((u) => !u.isBlocked)}
-                    onClick={() => setBlockedForSelection(false)}
-                >
-                    {t('admin.toolbar.unblock')}
-                </Button>
-                <Button variant="outline-primary" disabled={!singleSelected} onClick={() => setModal('roles')}>
-                    {t('admin.toolbar.manageRoles')}
-                </Button>
-                <Button
-                    variant="outline-danger"
-                    disabled={selection.items.length === 0 || selectionIncludesSelf}
-                    onClick={() => setModal('delete')}
-                >
-                    {t('admin.toolbar.delete')}
-                </Button>
-            </div>
-
-            <UserList
-                selectedIds={selection.items.map((u) => u.id)}
-                onToggleRow={selection.toggle}
-                onToggleAll={selection.toggleAll}
-                refreshToken={refreshToken}
-            />
-
-            {modal === 'roles' && (
-                <RoleModal
-                    show
-                    user={singleSelected}
-                    onClose={closeModal}
-                    onSubmit={handleRoleSubmit}
-                    error={formError}
-                />
-            )}
-
-            <Modal show={modal === 'delete'} onHide={closeModal}>
-                <Modal.Header closeButton>
-                    <Modal.Title>{t('admin.deleteConfirm.title')}</Modal.Title>
-                </Modal.Header>
-                <Modal.Body>
-                    {t('admin.deleteConfirm.body', { names: selection.items.map(formatName).join(', ') })}
-                </Modal.Body>
-                <Modal.Footer>
-                    <Button variant="secondary" onClick={closeModal}>
-                        {t('admin.roleModal.cancel')}
-                    </Button>
-                    <Button variant="danger" onClick={handleDeleteConfirm}>
-                        {t('admin.toolbar.delete')}
-                    </Button>
-                </Modal.Footer>
-            </Modal>
+            <DismissibleAlert onClose={() => setBanner(null)}>{banner}</DismissibleAlert>
+            <Toolbar actions={actions} />
+            <UserList selectedIds={selection.ids} onToggleRow={selection.toggle} onToggleAll={selection.toggleAll} refreshToken={refreshToken} />
+            {modal === 'roles' && <RoleModal show user={selection.single} onClose={closeModal} onSubmit={handleRoles} error={formError} />}
+            <ConfirmationModal show={modal === 'delete'} onCancel={closeModal} onConfirm={handleDelete} title={t('admin.deleteConfirm.title')} body={t('admin.deleteConfirm.body', { names: selection.items.map(formatName).join(', ') })} cancelLabel={t('admin.roleModal.cancel')} confirmLabel={t('admin.toolbar.delete')} />
         </div>
     )
 }

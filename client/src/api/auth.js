@@ -1,25 +1,9 @@
-const request = async (path, options) => {
-    const res = await fetch(`/api/auth${path}`, {
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        ...options,
-    });
+import { get, patch, post } from './http.js'
 
-    const body = await res.json().catch(() => null);
+const authPath = (path) => `/api/auth${path}`
 
-    if (!res.ok) {
-        throw new Error(body?.message ?? `Request failed with status ${res.status}`);
-    }
-
-    return body;
-};
-
-export const register = (data) => request('/register', { method: 'POST', body: JSON.stringify(data) });
-
-export const login = (data) => request('/login', { method: 'POST', body: JSON.stringify(data) });
-
-export const logout = () => request('/logout', { method: 'POST' });
-
-export const me = () => request('/me', { method: 'GET' });
-
-export const updateMe = (patch) => request('/me', { method: 'PATCH', body: JSON.stringify(patch) });
+export const register = (data) => post(authPath('/register'), data)
+export const login = (data) => post(authPath('/login'), data)
+export const logout = () => post(authPath('/logout'))
+export const me = () => get(authPath('/me'))
+export const updateMe = (data) => patch(authPath('/me'), data)

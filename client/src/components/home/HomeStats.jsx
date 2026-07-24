@@ -7,7 +7,7 @@ const TILE_KEYS = ['resumesLast24h', 'totalPositions', 'totalCandidates', 'total
 
 const HomeStats = () => {
     const { t } = useTranslation()
-    const { data: stats, error } = useAsyncData(getHomeStats, [])
+    const { data: stats, error } = useAsyncData(getHomeStats)
 
     if (error) return <div className="alert alert-danger">{error}</div>
 

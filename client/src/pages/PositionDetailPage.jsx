@@ -1,175 +1,86 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useState } from 'react'
+import { Button } from 'react-bootstrap'
 import { useNavigate, useParams } from 'react-router-dom'
-import { Button, Card } from 'react-bootstrap'
 import { useTranslation } from 'react-i18next'
-import { useAuth } from '../context/auth-context.js'
+import { ConflictError } from '../api/http.js'
 import { getPosition, updatePosition } from '../api/positions.js'
 import { createResume } from '../api/resumes.js'
-import { ConflictError } from '../api/http.js'
-import PositionFormModal from '../components/positions/PositionFormModal.jsx'
-import PositionAttributesSection from '../components/positions/PositionAttributesSection.jsx'
-import PositionProjectFilterSection from '../components/positions/PositionProjectFilterSection.jsx'
+import DismissibleAlert from '../components/common/DismissibleAlert.jsx'
 import PositionAccessRulesSection from '../components/positions/PositionAccessRulesSection.jsx'
+import PositionAttributesSection from '../components/positions/PositionAttributesSection.jsx'
+import PositionFormModal from '../components/positions/PositionFormModal.jsx'
+import PositionProjectFilterSection from '../components/positions/PositionProjectFilterSection.jsx'
 import PositionResumesTable from '../components/positions/PositionResumesTable.jsx'
-import AccessBadge from '../components/common/AccessBadge.jsx'
+import PositionSummaryCard from '../components/positions/PositionSummaryCard.jsx'
+import { useAuth } from '../context/auth-context.js'
+import { useAsyncData } from '../hooks/useAsyncData.js'
 
 const PositionDetailPage = () => {
     const { t } = useTranslation()
     const { id } = useParams()
     const navigate = useNavigate()
     const { user } = useAuth()
-    const isAdmin = Boolean(user) && user.roles.includes('ADMIN')
-    const canManage = Boolean(user) && (user.roles.includes('RECRUITER') || isAdmin)
-    const canActAsCandidate = Boolean(user) && (!user.roles.includes('RECRUITER') || isAdmin)
-
-    const [position, setPosition] = useState(null)
-    const [loading, setLoading] = useState(true)
-    const [error, setError] = useState(null)
     const [banner, setBanner] = useState(null)
     const [showEdit, setShowEdit] = useState(false)
     const [editError, setEditError] = useState(null)
     const [creatingResume, setCreatingResume] = useState(false)
-
-    const load = () => {
-        setLoading(true)
-        getPosition(id)
-            .then((data) => { setPosition(data); setError(null) })
-            .catch((err) => setError(err.message))
-            .finally(() => setLoading(false))
-    }
-
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    useEffect(load, [id])
-
-    const patch = async (fields) => {
+    const fetchPosition = useCallback(() => getPosition(id), [id])
+    const { data: position, setData: setPosition, loading, error, reload } = useAsyncData(fetchPosition)
+    const isAdmin = Boolean(user?.roles.includes('ADMIN'))
+    const canManage = Boolean(user) && (user.roles.includes('RECRUITER') || isAdmin)
+    const canActAsCandidate = Boolean(user) && (!user.roles.includes('RECRUITER') || isAdmin)
+    const patchPosition = async (fields) => {
         try {
             const updated = await updatePosition(id, { ...fields, version: position.version })
             setPosition(updated)
             setBanner(null)
             return updated
-        } catch (err) {
-            if (err instanceof ConflictError) {
+        } catch (requestError) {
+            if (requestError instanceof ConflictError) {
                 setBanner(t('positions.conflict'))
-                load()
+                reload()
             }
-            throw err
+            throw requestError
         }
     }
-
-    const handleEditSubmit = async (payload) => {
+    const edit = async (payload) => {
         try {
-            await patch(payload)
+            await patchPosition(payload)
             setShowEdit(false)
             setEditError(null)
-        } catch (err) {
-            if (!(err instanceof ConflictError)) setEditError(err.message)
-            else setShowEdit(false)
+        } catch (requestError) {
+            if (requestError instanceof ConflictError) setShowEdit(false)
+            else setEditError(requestError.message)
         }
     }
-
-    const handleCreateResume = async () => {
+    const createCandidateResume = async () => {
         setCreatingResume(true)
         try {
             const resume = await createResume(position.id)
             navigate(`/resumes/${resume.id}`)
-        } catch (err) {
-            setBanner(err.message)
+        } catch (requestError) {
+            setBanner(requestError.message)
         } finally {
             setCreatingResume(false)
         }
     }
-
     if (loading) return <p className="text-muted">{t('positions.loading')}</p>
     if (error) return <div className="alert alert-danger">{error}</div>
     if (!position) return null
-
     return (
         <div>
-            <Button variant="link" className="px-0 mb-2" onClick={() => navigate(-1)}>
-                &larr; {t('common.back')}
-            </Button>
-
-            {banner && (
-                <div className="alert alert-warning alert-dismissible" role="alert">
-                    {banner}
-                    <button type="button" className="btn-close" onClick={() => setBanner(null)} />
-                </div>
-            )}
-
-            <Card className="mb-4">
-                <Card.Body>
-                    <div className="d-flex justify-content-between align-items-start">
-                        <div>
-                            <Card.Title>{position.title}</Card.Title>
-                            <div className="text-muted mb-2">
-                                {[position.company, position.level ? t(`positions.levels.${position.level}`) : null]
-                                    .filter(Boolean)
-                                    .join(' · ')}
-                            </div>
-                            <AccessBadge isPublic={position.isPublic} />
-                            {position.description && <p className="mt-3 mb-0">{position.description}</p>}
-                        </div>
-                        {canManage && (
-                            <Button variant="outline-primary" size="sm" onClick={() => setShowEdit(true)}>
-                                {t('positions.toolbar.edit')}
-                            </Button>
-                        )}
-                    </div>
-                </Card.Body>
-            </Card>
-
-            {canActAsCandidate && (
-                <div className="d-flex gap-2 mb-4">
-                    {position.myResume ? (
-                        <Button variant="primary" onClick={() => navigate(`/resumes/${position.myResume.id}`)}>
-                            {t('positions.resumes.open')}
-                        </Button>
-                    ) : (
-                        <Button variant="primary" disabled={creatingResume} onClick={handleCreateResume}>
-                            {t('positions.resumes.create')}
-                        </Button>
-                    )}
-                </div>
-            )}
-
+            <Button variant="link" className="px-0 mb-2" onClick={() => navigate(-1)}>&larr; {t('common.back')}</Button>
+            <DismissibleAlert onClose={() => setBanner(null)}>{banner}</DismissibleAlert>
+            <PositionSummaryCard position={position} editable={canManage} onEdit={() => setShowEdit(true)} t={t} />
+            {canActAsCandidate && <div className="d-flex gap-2 mb-4"><Button variant="primary" disabled={creatingResume} onClick={position.myResume ? () => navigate(`/resumes/${position.myResume.id}`) : createCandidateResume}>{t(position.myResume ? 'positions.resumes.open' : 'positions.resumes.create')}</Button></div>}
             <h5>{t('positions.attributesSection.title')}</h5>
-            <PositionAttributesSection
-                attributes={position.attributes}
-                onSave={(attributeIds) => patch({ attributeIds })}
-                disabled={!canManage}
-            />
-
+            <PositionAttributesSection attributes={position.attributes} onSave={(attributeIds) => patchPosition({ attributeIds })} disabled={!canManage} />
             <h5 className="mt-4">{t('positions.projectFilter.title')}</h5>
-            <PositionProjectFilterSection
-                tags={position.projectTagFilters.map((f) => f.tag.name)}
-                maxProjects={position.maxProjects}
-                onSave={(fields) => patch(fields)}
-                disabled={!canManage}
-            />
-
+            <PositionProjectFilterSection tags={position.projectTagFilters.map(({ tag }) => tag.name)} maxProjects={position.maxProjects} onSave={patchPosition} disabled={!canManage} />
             <h5 className="mt-4">{t('positions.accessRules.title')}</h5>
-            <PositionAccessRulesSection
-                rules={position.accessRules}
-                onSave={(accessRules) => patch({ accessRules })}
-                disabled={!canManage}
-            />
-
-            {canManage && (
-                <>
-                    <h5 className="mt-4">{t('positions.resumes.title')}</h5>
-                    <PositionResumesTable resumes={position.resumes ?? []} />
-                </>
-            )}
-
-            {showEdit && (
-                <PositionFormModal
-                    show
-                    onClose={() => { setShowEdit(false); setEditError(null) }}
-                    onSubmit={handleEditSubmit}
-                    position={position}
-                    error={editError}
-                />
-            )}
+            <PositionAccessRulesSection rules={position.accessRules} onSave={(accessRules) => patchPosition({ accessRules })} disabled={!canManage} />
+            {canManage && <><h5 className="mt-4">{t('positions.resumes.title')}</h5><PositionResumesTable resumes={position.resumes ?? []} /></>}
+            {showEdit && <PositionFormModal show onClose={() => { setShowEdit(false); setEditError(null) }} onSubmit={edit} position={position} error={editError} />}
         </div>
     )
 }

@@ -1,7 +1,9 @@
 import { useCallback, useState } from 'react'
+import { Button } from 'react-bootstrap'
 import { useDropzone } from 'react-dropzone'
 import { useTranslation } from 'react-i18next'
 import { uploadImage } from '../../api/images.js'
+import DismissibleAlert from '../common/DismissibleAlert.jsx'
 
 const ALLOWED_MIME_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/gif']
 const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024
@@ -61,17 +63,12 @@ const ImageUploader = ({ value, onUpload, onRemove, disabled }) => {
                 )}
             </div>
 
-            {error && <div className="alert alert-danger mt-2 mb-0">{error}</div>}
+            <DismissibleAlert variant="danger" className="mt-2 mb-0">{error}</DismissibleAlert>
 
             {value && !uploading && (
-                <button
-                    type="button"
-                    className="btn btn-outline-danger btn-sm mt-2"
-                    disabled={disabled}
-                    onClick={onRemove}
-                >
+                <Button type="button" variant="outline-danger" size="sm" className="mt-2" disabled={disabled} onClick={onRemove}>
                     {t('profile.image.remove')}
-                </button>
+                </Button>
             )}
         </div>
     )

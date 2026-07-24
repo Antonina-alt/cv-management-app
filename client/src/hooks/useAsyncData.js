@@ -1,23 +1,35 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 
-export const useAsyncData = (fetcher, deps, { debounceMs = 0 } = {}) => {
+const toMessage = (error) => error?.message ?? String(error)
+
+export const useAsyncData = (fetcher, { debounceMs = 0, enabled = true, refreshKey } = {}) => {
     const [data, setData] = useState(null)
-    const [loading, setLoading] = useState(true)
+    const [loading, setLoading] = useState(enabled)
     const [error, setError] = useState(null)
+    const [reloadToken, setReloadToken] = useState(0)
 
     useEffect(() => {
-        let cancelled = false
-        const run = () => {
+        if (!enabled) return undefined
+        let active = true
+        const load = async () => {
             setLoading(true)
             setError(null)
-            fetcher()
-                .then((result) => { if (!cancelled) setData(result) })
-                .catch((err) => { if (!cancelled) setError(err.message) })
-                .finally(() => { if (!cancelled) setLoading(false) })
+            try {
+                const result = await fetcher()
+                if (active) setData(result)
+            } catch (requestError) {
+                if (active) setError(toMessage(requestError))
+            } finally {
+                if (active) setLoading(false)
+            }
         }
-        const handle = setTimeout(run, debounceMs)
-        return () => { cancelled = true; clearTimeout(handle) }
-    }, deps)
+        const timer = setTimeout(load, debounceMs)
+        return () => {
+            active = false
+            clearTimeout(timer)
+        }
+    }, [debounceMs, enabled, fetcher, refreshKey, reloadToken])
 
-    return { data, loading, error }
+    const reload = useCallback(() => setReloadToken((value) => value + 1), [])
+    return { data, loading: enabled && loading, error, reload, setData }
 }

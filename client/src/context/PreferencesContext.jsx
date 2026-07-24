@@ -27,17 +27,26 @@ export const PreferencesProvider = ({ children }) => {
         document.documentElement.setAttribute('lang', language)
     }, [language])
 
+    const savePreference = useCallback(async (changes) => {
+        try {
+            const updated = await authApi.updateMe({
+                ...changes,
+                version: user.version,
+            })
+            updateUser(updated)
+        } catch (error) {
+            console.error('Failed to save preferences', error)
+        }
+    }, [user, updateUser])
+
     const setTheme = useCallback(async (next) => {
         if (!user) {
             localStorage.setItem(THEME_KEY, next)
             setGuestTheme(next)
             return
         }
-        try {
-            const updated = await authApi.updateMe({ theme: next.toUpperCase(), version: user.version })
-            updateUser(updated)
-        } catch {}
-    }, [user, updateUser])
+        await savePreference({ theme: next.toUpperCase() })
+    }, [user, savePreference])
 
     const setLanguage = useCallback(async (next) => {
         if (!user) {
@@ -45,11 +54,9 @@ export const PreferencesProvider = ({ children }) => {
             setGuestLanguage(next)
             return
         }
-        try {
-            const updated = await authApi.updateMe({ language: next.toUpperCase(), version: user.version })
-            updateUser(updated)
-        } catch {}
-    }, [user, updateUser])
+
+        await savePreference({ language: next.toUpperCase() })
+    }, [user, savePreference])
 
     return (
         <PreferencesContext.Provider value={{ theme, language, setTheme, setLanguage }}>

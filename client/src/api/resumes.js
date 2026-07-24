@@ -1,13 +1,7 @@
-import { apiRequest } from './http.js';
+import { get, patch, post, put, remove } from './http.js'
 
-export const createResume = (positionId) =>
-    apiRequest('/api/resumes', { method: 'POST', body: JSON.stringify({ positionId }) });
-
-export const getResume = (id) => apiRequest(`/api/resumes/${id}`, { method: 'GET' });
-
-export const publishResume = (id, version) =>
-    apiRequest(`/api/resumes/${id}/publish`, { method: 'PATCH', body: JSON.stringify({ version }) });
-
-export const likeResume = (id) => apiRequest(`/api/resumes/${id}/like`, { method: 'PUT' });
-
-export const unlikeResume = (id) => apiRequest(`/api/resumes/${id}/like`, { method: 'DELETE' });
+export const createResume = (positionId) => post('/api/resumes', { positionId })
+export const getResume = (id) => get(`/api/resumes/${id}`)
+export const publishResume = (id, version) => patch(`/api/resumes/${id}/publish`, { version })
+export const likeResume = (id) => put(`/api/resumes/${id}/like`)
+export const unlikeResume = (id) => remove(`/api/resumes/${id}/like`)

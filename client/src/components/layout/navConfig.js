@@ -1,20 +1,15 @@
-export const getNavItems = (user) => {
-    const items = [
-        { to: '/', labelKey: 'nav.home' },
-        { to: '/positions', labelKey: 'nav.positions' },
-    ]
+const NAV_ITEMS = [
+    { to: '/', labelKey: 'nav.home' },
+    { to: '/positions', labelKey: 'nav.positions' },
+    { to: '/profile', labelKey: 'nav.profile', authenticated: true },
+    { to: '/attributes', labelKey: 'nav.attributes', roles: ['RECRUITER', 'ADMIN'] },
+    { to: '/admin', labelKey: 'nav.admin', roles: ['ADMIN'] },
+]
 
-    if (user) {
-        items.push({ to: '/profile', labelKey: 'nav.profile' })
-
-        if (user.roles.includes('RECRUITER') || user.roles.includes('ADMIN')) {
-            items.push({ to: '/attributes', labelKey: 'nav.attributes' })
-        }
-
-        if (user.roles.includes('ADMIN')) {
-            items.push({ to: '/admin', labelKey: 'nav.admin' })
-        }
-    }
-
-    return items
+const isVisible = (item, user) => {
+    if (item.authenticated && !user) return false
+    if (!item.roles) return true
+    return Boolean(user?.roles.some((role) => item.roles.includes(role)))
 }
+
+export const getNavItems = (user) => NAV_ITEMS.filter((item) => isVisible(item, user))

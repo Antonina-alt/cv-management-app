@@ -1,143 +1,61 @@
 import { useMemo, useState } from 'react'
-import { Button, Modal } from 'react-bootstrap'
 import { useTranslation } from 'react-i18next'
-import CommonDataTable, { TABLE_MODE } from '../common/CommonDataTable.jsx'
-import AccessRuleFormModal from './AccessRuleFormModal.jsx'
-import { useIdSelection } from '../../hooks/useIdSelection.js'
+import { useSelection } from '../../hooks/useSelection.js'
 import { formatDate } from '../../lib/formatDate.js'
+import CommonDataTable from '../common/CommonDataTable.jsx'
+import { TABLE_MODE } from '../../lib/tableMode.js'
+import ConfirmationModal from '../common/ConfirmationModal.jsx'
+import Toolbar from '../common/Toolbar.jsx'
+import AccessRuleFormModal from './AccessRuleFormModal.jsx'
 
 const sectionTableOptions = { paging: false, info: false, ordering: false }
-
+const ruleToPayload = ({ attributeId, operator, stringValue, numberValue, dateValue, optionId }) => ({ attributeId, operator, stringValue: stringValue ?? undefined, numberValue: numberValue ?? undefined, dateValue: dateValue ?? undefined, optionId: optionId ?? undefined })
 const formatValue = (rule, t, locale) => {
     if (rule.operator === 'IS_TRUE') return t('positions.accessRules.true')
     if (rule.operator === 'IS_FALSE') return t('positions.accessRules.false')
-    if (rule.attribute.type === 'SELECT') {
-        return rule.attribute.options?.find((option) => option.id === rule.optionId)?.label ?? ''
-    }
-    if (rule.attribute.type === 'NUMBER') return rule.numberValue
+    if (rule.attribute.type === 'SELECT') return rule.attribute.options?.find(({ id }) => id === rule.optionId)?.label ?? ''
     if (rule.attribute.type === 'DATE') return formatDate(rule.dateValue, locale)
-    return rule.stringValue
+    return rule.attribute.type === 'NUMBER' ? rule.numberValue : rule.stringValue
 }
-
-const ruleToPayload = (rule) => ({
-    attributeId: rule.attributeId,
-    operator: rule.operator,
-    stringValue: rule.stringValue ?? undefined,
-    numberValue: rule.numberValue ?? undefined,
-    dateValue: rule.dateValue ?? undefined,
-    optionId: rule.optionId ?? undefined,
-})
 
 const PositionAccessRulesSection = ({ rules, onSave, disabled }) => {
     const { t, i18n } = useTranslation()
-    const selection = useIdSelection()
+    const selection = useSelection()
     const [modal, setModal] = useState(null)
     const [formError, setFormError] = useState(null)
-
-    const selectedRules = rules.filter((rule) => selection.ids.includes(rule.id))
-    const singleSelected = selectedRules.length === 1 ? selectedRules[0] : null
-
     const closeModal = () => {
         setModal(null)
         setFormError(null)
     }
-
-    const handleCreateSubmit = async (payload) => {
+    const save = async (payloads) => {
         try {
-            await onSave([...rules.map(ruleToPayload), payload])
+            await onSave(payloads)
+            selection.clear()
             closeModal()
         } catch (error) {
             setFormError(error.message)
         }
     }
-
-    const handleEditSubmit = async (payload) => {
-        try {
-            await onSave(rules.map((rule) => (rule.id === singleSelected.id ? payload : ruleToPayload(rule))))
-            selection.setIds([])
-            closeModal()
-        } catch (error) {
-            setFormError(error.message)
-        }
-    }
-
-    const handleDeleteConfirm = async () => {
-        await onSave(rules.filter((rule) => !selection.ids.includes(rule.id)).map(ruleToPayload))
-        selection.setIds([])
-        closeModal()
-    }
-
+    const create = (payload) => save([...rules.map(ruleToPayload), payload])
+    const edit = (payload) => save(rules.map((rule) => rule.id === selection.single.id ? payload : ruleToPayload(rule)))
+    const remove = () => save(rules.filter(({ id }) => !selection.ids.includes(id)).map(ruleToPayload))
     const columns = useMemo(() => [
         { data: (row) => row.attribute.name, title: t('positions.accessRules.form.attribute') },
-        {
-            data: 'operator',
-            title: t('positions.accessRules.form.operator'),
-            render: (data, row) => t(`positions.accessRules.operators.${row.operator}`),
-        },
-        {
-            data: (row) => formatValue(row, t, i18n.resolvedLanguage),
-            title: t('positions.accessRules.form.value'),
-        },
+        { data: 'operator', title: t('positions.accessRules.form.operator'), render: (_, row) => t(`positions.accessRules.operators.${row.operator}`) },
+        { data: (row) => formatValue(row, t, i18n.resolvedLanguage), title: t('positions.accessRules.form.value') },
     ], [i18n.resolvedLanguage, t])
-
+    const actions = [
+        { key: 'add', label: t('positions.accessRules.toolbar.add'), variant: 'primary', size: 'sm', onClick: () => setModal('create') },
+        { key: 'edit', label: t('positions.accessRules.toolbar.edit'), variant: 'outline-primary', size: 'sm', disabled: !selection.single, onClick: () => setModal('edit') },
+        { key: 'delete', label: t('positions.accessRules.toolbar.delete'), variant: 'outline-danger', size: 'sm', disabled: !selection.items.length, onClick: () => setModal('delete') },
+    ]
     return (
         <div>
-            {!disabled && (
-                <div className="d-flex flex-wrap gap-2 mb-3">
-                    <Button variant="primary" size="sm" onClick={() => setModal('create')}>
-                        {t('positions.accessRules.toolbar.add')}
-                    </Button>
-                    <Button variant="outline-primary" size="sm" disabled={!singleSelected} onClick={() => setModal('edit')}>
-                        {t('positions.accessRules.toolbar.edit')}
-                    </Button>
-                    <Button
-                        variant="outline-danger"
-                        size="sm"
-                        disabled={selectedRules.length === 0}
-                        onClick={() => setModal('delete')}
-                    >
-                        {t('positions.accessRules.toolbar.delete')}
-                    </Button>
-                </div>
-            )}
-
-            <CommonDataTable
-                data={rules}
-                columns={columns}
-                emptyMessage={t('positions.accessRules.empty')}
-                mode={disabled ? TABLE_MODE.READ_ONLY : TABLE_MODE.MULTIPLE}
-                selectedIds={selection.ids}
-                onToggleRow={(row) => selection.toggle(row.id)}
-                onToggleAll={selection.toggleAll}
-                getRowLabel={(row) => row.attribute.name}
-                options={sectionTableOptions}
-            />
-
-            {modal === 'create' && (
-                <AccessRuleFormModal show onClose={closeModal} onSubmit={handleCreateSubmit} error={formError} />
-            )}
-
-            {modal === 'edit' && singleSelected && (
-                <AccessRuleFormModal
-                    key={singleSelected.id}
-                    show
-                    onClose={closeModal}
-                    onSubmit={handleEditSubmit}
-                    rule={singleSelected}
-                    error={formError}
-                />
-            )}
-
-            <Modal show={modal === 'delete'} onHide={closeModal}>
-                <Modal.Header closeButton>
-                    <Modal.Title>{t('positions.accessRules.deleteConfirm.title')}</Modal.Title>
-                </Modal.Header>
-                <Modal.Body>{t('positions.accessRules.deleteConfirm.body')}</Modal.Body>
-                <Modal.Footer>
-                    <Button variant="secondary" onClick={closeModal}>{t('positions.form.cancel')}</Button>
-                    <Button variant="danger" onClick={handleDeleteConfirm}>{t('positions.accessRules.toolbar.delete')}</Button>
-                </Modal.Footer>
-            </Modal>
+            {!disabled && <Toolbar actions={actions} />}
+            <CommonDataTable data={rules} columns={columns} emptyMessage={t('positions.accessRules.empty')} mode={disabled ? TABLE_MODE.READ_ONLY : TABLE_MODE.MULTIPLE} selectedIds={selection.ids} onToggleRow={selection.toggle} onToggleAll={selection.toggleAll} getRowLabel={(row) => row.attribute.name} options={sectionTableOptions} />
+            {modal === 'create' && <AccessRuleFormModal show onClose={closeModal} onSubmit={create} error={formError} />}
+            {modal === 'edit' && selection.single && <AccessRuleFormModal key={selection.single.id} show onClose={closeModal} onSubmit={edit} rule={selection.single} error={formError} />}
+            <ConfirmationModal show={modal === 'delete'} onCancel={closeModal} onConfirm={remove} title={t('positions.accessRules.deleteConfirm.title')} body={t('positions.accessRules.deleteConfirm.body')} cancelLabel={t('positions.form.cancel')} confirmLabel={t('positions.accessRules.toolbar.delete')} />
         </div>
     )
 }
