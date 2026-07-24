@@ -1,125 +1,76 @@
 import { prisma } from "../lib/prisma.js";
 import { normalizeName } from "../lib/normalize.js";
 
-const categories = ["Certification", "Domain knowledge", "Personal info", "Soft skills", "Other",];
-
-const systemAttributes = [
-    {
-        name: "First name",
-        systemKey: "FIRST_NAME",
-        type: "STRING",
-        category: "Personal info",
-    },
-    {
-        name: "Last name",
-        systemKey: "LAST_NAME",
-        type: "STRING",
-        category: "Personal info",
-    },
-    {
-        name: "Location",
-        systemKey: "LOCATION",
-        type: "STRING",
-        category: "Personal info",
-    },
-    {
-        name: "Profile image",
-        systemKey: "PROFILE_IMAGE",
-        type: "IMAGE",
-        category: "Personal info",
-    },
+const CATEGORY_NAMES = [
+    "Certification",
+    "Domain knowledge",
+    "Personal info",
+    "Soft skills",
+    "Other",
 ];
 
-const buildCategoryData = () =>
-    categories.map((name, sortOrder) => ({name, normalizedName: normalizeName(name), sortOrder,}));
+const SYSTEM_ATTRIBUTES = [
+    { name: "First name", systemKey: "FIRST_NAME", type: "STRING", category: "Personal info" },
+    { name: "Last name", systemKey: "LAST_NAME", type: "STRING", category: "Personal info" },
+    { name: "Location", systemKey: "LOCATION", type: "STRING", category: "Personal info" },
+    { name: "Profile image", systemKey: "PROFILE_IMAGE", type: "IMAGE", category: "Personal info" },
+];
 
-const getCategoryId = (categoryIdByName, categoryName) => {
-    const normalizedName = normalizeName(categoryName);
-    const categoryId = categoryIdByName.get(normalizedName);
-    if (!categoryId) {
-        throw new Error(`Category not found: ${categoryName}`);
-    }
-    return categoryId;
+const categoryRows = () => CATEGORY_NAMES.map((name, sortOrder) => ({
+    name,
+    normalizedName: normalizeName(name),
+    sortOrder,
+}));
+
+const categoryId = (idsByName, name) => {
+    const id = idsByName.get(normalizeName(name));
+    if (!id) throw new Error(`Category not found: ${name}`);
+    return id;
 };
 
-const buildSystemAttributeData = (categoryIdByName) =>
-    systemAttributes.map((attribute) => ({
-        name: attribute.name,
-        normalizedName: normalizeName(attribute.name),
-        type: attribute.type,
-        systemKey: attribute.systemKey,
-        categoryId: getCategoryId(
-            categoryIdByName,
-            attribute.category,
-        ),
-    }));
+const attributeRows = (idsByName) => SYSTEM_ATTRIBUTES.map((attribute) => ({
+    name: attribute.name,
+    normalizedName: normalizeName(attribute.name),
+    type: attribute.type,
+    systemKey: attribute.systemKey,
+    categoryId: categoryId(idsByName, attribute.category),
+}));
 
 const seedCategories = async (tx) => {
-    const categoryData = buildCategoryData();
-    await tx.attributeCategory.createMany({
-        data: categoryData,
-        skipDuplicates: true,
+    const rows = categoryRows();
+    await tx.attributeCategory.createMany({ data: rows, skipDuplicates: true });
+    const categories = await tx.attributeCategory.findMany({
+        where: { normalizedName: { in: rows.map(({ normalizedName }) => normalizedName) } },
+        select: { id: true, normalizedName: true },
     });
-    const savedCategories = await tx.attributeCategory.findMany({
-        where: {
-            normalizedName: {
-                in: categoryData.map(
-                    (category) => category.normalizedName,
-                ),
-            },
-        },
-        select: {
-            id: true,
-            normalizedName: true,
-        },
-    });
-    return new Map(savedCategories.map((category) => [category.normalizedName, category.id,]),);
+    return new Map(categories.map(({ id, normalizedName }) => [normalizedName, id]));
 };
 
-const validateSystemAttributes = async (tx) => {
-    const expectedKeys = systemAttributes.map((attribute) => attribute.systemKey,);
-
-    const savedAttributes = await tx.attribute.findMany({
-        where: {
-            systemKey: {
-                in: expectedKeys,
-            },
-        },
-        select: {
-            systemKey: true,
-        },
+const ensureSystemAttributes = async (tx) => {
+    const keys = SYSTEM_ATTRIBUTES.map(({ systemKey }) => systemKey);
+    const attributes = await tx.attribute.findMany({
+        where: { systemKey: { in: keys } },
+        select: { systemKey: true },
     });
-
-    const existingKeys = new Set(savedAttributes.map((attribute) => attribute.systemKey),);
-
-    const missingKeys = expectedKeys.filter((key) => !existingKeys.has(key),);
-
-    if (missingKeys.length) {
-        throw new Error(
-            `Failed to seed system attributes: ${missingKeys.join(", ")}`,
-        );
-    }
+    const savedKeys = new Set(attributes.map(({ systemKey }) => systemKey));
+    const missing = keys.filter((key) => !savedKeys.has(key));
+    if (missing.length) throw new Error(`Failed to seed system attributes: ${missing.join(", ")}`);
 };
 
-const seedSystemAttributes = async (tx, categoryIdByName) => {
-    await tx.attribute.createMany({
-        data: buildSystemAttributeData(categoryIdByName),
-        skipDuplicates: true,
-    });
-    await validateSystemAttributes(tx);
+const seedSystemAttributes = async (tx, idsByName) => {
+    await tx.attribute.createMany({ data: attributeRows(idsByName), skipDuplicates: true });
+    await ensureSystemAttributes(tx);
 };
 
-async function main() {
-    await prisma.$transaction(async (tx) => {
-        const categoryIdByName = await seedCategories(tx);
-        await seedSystemAttributes(tx, categoryIdByName,);
-    });
-}
+const seed = () => prisma.$transaction(async (tx) => {
+    const idsByName = await seedCategories(tx);
+    await seedSystemAttributes(tx, idsByName);
+});
 
-main()
+seed()
     .then(() => prisma.$disconnect())
-    .catch(async (err) => {
-        console.error(err);
+    .catch(async (error) => {
+        console.error(error);
         await prisma.$disconnect();
         process.exit(1);
     });

@@ -1,4 +1,3 @@
--- CreateTable
 CREATE TABLE "Candidate" (
     "id" SERIAL NOT NULL,
     "firstName" TEXT NOT NULL,
@@ -13,5 +12,4 @@ CREATE TABLE "Candidate" (
     CONSTRAINT "Candidate_pkey" PRIMARY KEY ("id")
 );
 
--- CreateIndex
 CREATE UNIQUE INDEX "Candidate_email_key" ON "Candidate"("email");

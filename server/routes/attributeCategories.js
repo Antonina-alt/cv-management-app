@@ -1,14 +1,8 @@
 import express from "express";
-import { prisma } from "../lib/prisma.js";
+import { getAttributeCategories } from "../controllers/catalogController.js";
 import { requireAuth } from "../middleware/auth.js";
 
 const router = express.Router();
-
-router.get("/", requireAuth, async (req, res) => {
-    const categories = await prisma.attributeCategory.findMany({
-        orderBy: { sortOrder: "asc" },
-    });
-    res.status(200).json(categories);
-});
+router.get("/", requireAuth, getAttributeCategories);
 
 export default router;

@@ -245,6 +245,34 @@ describe("hiding resumes when access is lost", () => {
     });
 });
 
+describe("DELETE /api/resumes/:id", () => {
+    it("lets the owner delete a resume with the current version", async () => {
+        const { agent: recruiter } = await registerAndLogin(["RECRUITER"], "delete-recruiter");
+        const { agent: candidate } = await registerAndLogin([], "delete-candidate");
+        const position = await recruiter.post("/api/positions").send({ title: unique("Delete Pos"), isPublic: true });
+        createdPositionIds.push(position.body.id);
+        const created = await candidate.post("/api/resumes").send({ positionId: position.body.id });
+
+        const deleted = await candidate.delete(`/api/resumes/${created.body.id}`).send({ version: created.body.version });
+
+        expect(deleted.status).toBe(204);
+        expect(await prisma.resume.findUnique({ where: { id: created.body.id } })).toBeNull();
+    });
+
+    it("rejects deletion by another candidate", async () => {
+        const { agent: recruiter } = await registerAndLogin(["RECRUITER"], "delete-forbid-recruiter");
+        const { agent: owner } = await registerAndLogin([], "delete-owner");
+        const { agent: intruder } = await registerAndLogin([], "delete-intruder");
+        const position = await recruiter.post("/api/positions").send({ title: unique("Delete Forbid Pos"), isPublic: true });
+        createdPositionIds.push(position.body.id);
+        const created = await owner.post("/api/resumes").send({ positionId: position.body.id });
+
+        const deleted = await intruder.delete(`/api/resumes/${created.body.id}`).send({ version: created.body.version });
+
+        expect(deleted.status).toBe(403);
+    });
+});
+
 describe("resume likes", () => {
     it("lets a recruiter like and unlike, without creating duplicates on repeat likes", async () => {
         const { agent: recruiter } = await registerAndLogin(["RECRUITER"], "like-recruiter");

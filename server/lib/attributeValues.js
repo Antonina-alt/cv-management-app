@@ -9,36 +9,45 @@ const EMPTY_VALUE = {
     selectedOptionId: null,
 };
 
-const validateString = (body) => ({ stringValue: body.stringValue != null ? String(body.stringValue) : null });
+const optionalString = (value, field) => value == null
+    ? {}
+    : { [field]: String(value) };
 
-const validateImage = (body) => ({ imageUrl: body.imageUrl != null ? String(body.imageUrl) : null });
+const validateString = (body) => optionalString(body.stringValue, "stringValue");
+const validateImage = (body) => optionalString(body.imageUrl, "imageUrl");
 
-const validateBoolean = (body) => ({ booleanValue: Boolean(body.booleanValue) });
+const validateBoolean = (body) => {
+    if (body.booleanValue == null || body.booleanValue === "") return {};
+    if (typeof body.booleanValue !== "boolean") return { error: "booleanValue must be a boolean" };
+    return { booleanValue: body.booleanValue };
+};
 
 const validateNumber = (body) => {
-    if (body.numberValue === undefined || body.numberValue === null || body.numberValue === "") return {};
+    if (body.numberValue == null || body.numberValue === "") return {};
     const numberValue = Number(body.numberValue);
     return Number.isNaN(numberValue) ? { error: "numberValue must be a number" } : { numberValue };
 };
 
-const validateDate = (body) => {
-    if (!body.dateValue) return {};
-    const dateValue = new Date(body.dateValue);
-    return Number.isNaN(dateValue.getTime()) ? { error: "dateValue must be a valid date" } : { dateValue };
+const parseDate = (value, field) => {
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? { error: `${field} must be a valid date` } : { [field]: date };
 };
 
+const validateDate = (body) => body.dateValue ? parseDate(body.dateValue, "dateValue") : {};
+
 const validateDateRange = (body) => {
-    if (!body.dateFrom && !body.dateTo) return {};
-    const dateFrom = body.dateFrom ? new Date(body.dateFrom) : null;
-    const dateTo = body.dateTo ? new Date(body.dateTo) : null;
-    const invalid = (dateFrom && Number.isNaN(dateFrom.getTime())) || (dateTo && Number.isNaN(dateTo.getTime()));
-    return invalid ? { error: "dateFrom/dateTo must be valid dates" } : { dateFrom, dateTo };
+    const from = body.dateFrom ? parseDate(body.dateFrom, "dateFrom") : {};
+    if (from.error) return from;
+    const to = body.dateTo ? parseDate(body.dateTo, "dateTo") : {};
+    if (to.error) return to;
+    if (from.dateFrom && to.dateTo && to.dateTo < from.dateFrom) return { error: "dateTo must be on or after dateFrom" };
+    return { ...from, ...to };
 };
 
 const validateSelect = (attribute, body) => {
     if (!body.selectedOptionId) return {};
-    const option = attribute.options?.find((o) => o.id === body.selectedOptionId);
-    return option ? { selectedOptionId: body.selectedOptionId } : { error: "selectedOptionId must reference one of the attribute's options" };
+    const exists = attribute.options?.some(({ id }) => id === body.selectedOptionId);
+    return exists ? { selectedOptionId: body.selectedOptionId } : { error: "selectedOptionId must reference one of the attribute's options" };
 };
 
 const VALIDATORS = {
@@ -49,13 +58,12 @@ const VALIDATORS = {
     BOOLEAN: (attribute, body) => validateBoolean(body),
     DATE: (attribute, body) => validateDate(body),
     DATE_RANGE: (attribute, body) => validateDateRange(body),
-    SELECT: (attribute, body) => validateSelect(attribute, body),
+    SELECT: validateSelect,
 };
 
 export const buildValueData = (attribute, body) => {
     const validator = VALIDATORS[attribute.type];
     if (!validator) return { error: "unsupported attribute type" };
-
     const { error, ...fields } = validator(attribute, body);
     return error ? { error } : { data: { ...EMPTY_VALUE, ...fields } };
 };

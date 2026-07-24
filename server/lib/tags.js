@@ -1,64 +1,35 @@
 import { normalizeName } from "./normalize.js";
 
-const normalizeTags = (names) => {
-    const tagsByNormalizedName = new Map();
-
-    for (const value of names) {
-        const name = String(value).trim();
-        if (!name) continue;
-
-        const normalizedName = normalizeName(name);
-
-        if (!tagsByNormalizedName.has(normalizedName)) {
-            tagsByNormalizedName.set(normalizedName, {
-                name,
-                normalizedName,
-            });
-        }
-    }
-
-    return [...tagsByNormalizedName.values()];
+const toTag = (value) => {
+    const name = String(value).trim();
+    return name ? { name, normalizedName: normalizeName(name) } : null;
 };
 
-const mapTagIds = (requestedTags, savedTags) => {
-    const idByNormalizedName = new Map(
-        savedTags.map((tag) => [tag.normalizedName, tag.id]),
-    );
+const normalizeTags = (names) => {
+    const tags = names.map(toTag).filter(Boolean);
+    return [...new Map(tags.map((tag) => [tag.normalizedName, tag])).values()];
+};
 
-    const ids = requestedTags.map((tag) =>
-        idByNormalizedName.get(tag.normalizedName),
-    );
+const saveTags = (tx, tags) => tx.tag.createMany({
+    data: tags,
+    skipDuplicates: true,
+});
 
-    if (ids.some((id) => !id)) {
-        throw new Error("Failed to resolve tags");
-    }
+const loadTags = (tx, tags) => tx.tag.findMany({
+    where: { normalizedName: { in: tags.map(({ normalizedName }) => normalizedName) } },
+    select: { id: true, normalizedName: true },
+});
 
-    return ids;
+const mapTagIds = (requested, saved) => {
+    const ids = new Map(saved.map(({ id, normalizedName }) => [normalizedName, id]));
+    const resolved = requested.map(({ normalizedName }) => ids.get(normalizedName));
+    if (resolved.some((id) => !id)) throw new Error("Failed to resolve tags");
+    return resolved;
 };
 
 export const resolveTagIds = async (tx, names) => {
-    const requestedTags = normalizeTags(names);
-
-    if (!requestedTags.length) {
-        return [];
-    }
-
-    await tx.tag.createMany({
-        data: requestedTags,
-        skipDuplicates: true,
-    });
-
-    const savedTags = await tx.tag.findMany({
-        where: {
-            normalizedName: {
-                in: requestedTags.map((tag) => tag.normalizedName),
-            },
-        },
-        select: {
-            id: true,
-            normalizedName: true,
-        },
-    });
-
-    return mapTagIds(requestedTags, savedTags);
+    const requested = normalizeTags(names);
+    if (!requested.length) return [];
+    await saveTags(tx, requested);
+    return mapTagIds(requested, await loadTags(tx, requested));
 };
