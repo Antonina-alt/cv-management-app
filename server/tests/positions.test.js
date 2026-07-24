@@ -139,6 +139,25 @@ describe("POST /api/positions", () => {
         });
         expect(res.status).toBe(400);
     });
+
+    it("deduplicates project tags by normalized name", async () => {
+        const { agent } = await registerAndLogin(
+            ["RECRUITER"],
+            "duplicate-tags",
+        );
+        const tagName = unique("React");
+        const res = await agent.post("/api/positions").send({
+            title: unique("Position with tags"),
+            projectTags: [
+                tagName,
+                tagName.toUpperCase(),
+                `  ${tagName}  `,
+            ],
+        });
+        expect(res.status).toBe(201);
+        expect(res.body.projectTagFilters).toHaveLength(1);
+        createdPositionIds.push(res.body.id);
+    });
 });
 
 describe("POST /api/positions/:id/duplicate", () => {
