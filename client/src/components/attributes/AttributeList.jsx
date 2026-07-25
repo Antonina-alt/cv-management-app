@@ -20,10 +20,10 @@ const AttributeList = ({ selectedIds = [], onToggleRow = undefined, onToggleAll 
     const visible = useMemo(() => (data ?? []).filter((attribute) => (!excludeSystem || !attribute.systemKey) && (!excludeIds || !excludeIds.includes(attribute.id))), [data, excludeIds, excludeSystem],)
     const recent = getRecentAttributeIds().map((id) => visible.find((attribute) => attribute.id === id)).filter(Boolean)
     const columns = useMemo(() => [
-        { data: 'name', title: t('attributes.table.name'), render: (_, row) => <>{row.name}{row.systemKey && <span className="badge text-bg-info ms-2">{t('attributes.systemBadge')}</span>}</> },
-        { data: (row) => row.category?.name ?? '', title: t('attributes.table.category') },
-        { data: 'type', title: t('attributes.table.type'), render: (_, row) => <AttributeTypeBadge type={row.type} /> },
-        { data: 'description', title: t('attributes.table.description') },
+        { data: 'name', title: t('attributes.table.name'), className: 'all text-break', render: (_, row) => <>{row.name}{row.systemKey && <span className="badge text-bg-info ms-2">{t('attributes.systemBadge')}</span>}</> },
+        { data: (row) => row.category?.name ?? '', title: t('attributes.table.category'), className: 'min-tablet-l text-break' },
+        { data: 'type', title: t('attributes.table.type'), className: 'min-tablet-p', render: (_, row) => <AttributeTypeBadge type={row.type} /> },
+        { data: 'description', title: t('attributes.table.description'), className: 'desktop text-break' },
     ], [t])
     return (
         <div>
