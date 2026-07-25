@@ -1,3 +1,4 @@
+import { ERROR_CODES } from "../lib/errorCodes.js";
 import { prisma } from "../lib/prisma.js";
 import { buildAccessRuleData, candidateHasPositionAccess } from "../lib/positionAccess.js";
 import { candidateAccessMap, filterPositionsForUser, groupValuesByCandidateId } from "../lib/positionVisibility.js";
@@ -43,11 +44,11 @@ const positionWhere = ({ company, level }) => ({
 });
 
 const validateFields = (body) => {
-    if (body.title !== undefined && (typeof body.title !== "string" || !body.title.trim())) badRequest("title is required");
-    if (body.level != null && !POSITION_LEVELS.includes(body.level)) badRequest("invalid level");
+    if (body.title !== undefined && (typeof body.title !== "string" || !body.title.trim())) badRequest(ERROR_CODES.POSITION_TITLE_REQUIRED, { field: "title" });
+    if (body.level != null && !POSITION_LEVELS.includes(body.level)) badRequest(ERROR_CODES.POSITION_LEVEL_INVALID, { field: "level" });
     if (body.maxProjects == null) return;
     const value = Number(body.maxProjects);
-    if (!Number.isInteger(value) || value < 0) badRequest("maxProjects must be a non-negative integer");
+    if (!Number.isInteger(value) || value < 0) badRequest(ERROR_CODES.POSITION_MAX_PROJECTS_INVALID, { field: "maxProjects" });
 };
 
 const loadRuleAttributes = async (rules) => {
@@ -61,19 +62,28 @@ const loadRuleAttributes = async (rules) => {
 };
 
 const validateRule = (rule, attributes) => {
-    if (!rule?.attributeId || !rule?.operator) badRequest("each access rule requires attributeId and operator");
+    if (!rule?.attributeId || !rule?.operator) badRequest(ERROR_CODES.POSITION_ACCESS_RULE_FIELDS_REQUIRED);
     const attribute = attributes.get(rule.attributeId);
-    if (!attribute) badRequest("unknown attributeId in accessRules");
+    if (!attribute) badRequest(ERROR_CODES.POSITION_ACCESS_RULE_ATTRIBUTE_NOT_FOUND, { field: "attributeId" });
     const { data, error } = buildAccessRuleData(attribute, rule.operator, rule);
-    if (error) badRequest(error);
+    if (error) badRequest(error.code, error);
     return { attributeId: rule.attributeId, operator: rule.operator, ...data };
 };
 
 const resolveRuleCreates = async (rules) => {
     if (rules === undefined) return null;
-    if (!Array.isArray(rules)) badRequest("accessRules must be an array");
+    if (!Array.isArray(rules)) badRequest(ERROR_CODES.POSITION_ACCESS_RULES_INVALID, { field: "accessRules" });
     const attributes = await loadRuleAttributes(rules);
     return rules.map((rule) => validateRule(rule, attributes));
+};
+
+const validateAttributeIds = async (attributeIds) => {
+    if (attributeIds === undefined) return;
+    if (!Array.isArray(attributeIds)) badRequest(ERROR_CODES.POSITION_ATTRIBUTES_INVALID, { field: "attributeIds" });
+    const uniqueIds = [...new Set(attributeIds)];
+    if (uniqueIds.length !== attributeIds.length) badRequest(ERROR_CODES.POSITION_ATTRIBUTES_DUPLICATED, { field: "attributeIds" });
+    const count = await prisma.attribute.count({ where: { id: { in: uniqueIds } } });
+    if (count !== uniqueIds.length) badRequest(ERROR_CODES.ATTRIBUTE_NOT_FOUND, { field: "attributeIds" });
 };
 
 export const listPositions = async (query, user) => {
@@ -87,7 +97,7 @@ export const listPositions = async (query, user) => {
 
 const loadPosition = async (id, include = positionInclude) => {
     const position = await prisma.position.findUnique({ where: { id }, include });
-    if (!position) notFound("position not found");
+    if (!position) notFound(ERROR_CODES.POSITION_NOT_FOUND);
     return position;
 };
 
@@ -145,8 +155,9 @@ const createData = (body, tagIds, ruleCreates) => ({
 });
 
 export const createPosition = async (body) => {
-    if (body.title === undefined) badRequest("title is required");
+    if (body.title === undefined) badRequest(ERROR_CODES.POSITION_TITLE_REQUIRED, { field: "title" });
     validateFields(body);
+    await validateAttributeIds(body.attributeIds);
     const ruleCreates = await resolveRuleCreates(body.accessRules) ?? [];
     return prisma.$transaction(async (tx) => {
         const tags = Array.isArray(body.projectTags) ? body.projectTags : [];
@@ -216,14 +227,17 @@ const updateInTransaction = async (tx, id, body, ruleCreates) => {
     return tx.position.findUnique({ where: { id }, include: positionWithResumesInclude });
 };
 
-const throwPositionConflict = async (id) => conflict("Version conflict", {
-    position: await prisma.position.findUnique({ where: { id }, include: positionInclude }),
-});
+const throwPositionConflict = async (id) => {
+    const position = await prisma.position.findUnique({ where: { id }, include: positionInclude });
+    if (!position) notFound(ERROR_CODES.POSITION_NOT_FOUND);
+    conflict(ERROR_CODES.VERSION_CONFLICT, { resource: "position", position });
+};
 
 export const updatePosition = async (id, body) => {
     requireVersion(body);
     await loadPosition(id, undefined);
     validateFields(body);
+    await validateAttributeIds(body.attributeIds);
     const ruleCreates = await resolveRuleCreates(body.accessRules);
     try {
         return await prisma.$transaction((tx) => updateInTransaction(tx, id, body, ruleCreates));

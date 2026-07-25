@@ -14,6 +14,7 @@ import profileRouter from "./routes/profile.js";
 import resumesRouter from "./routes/resumes.js";
 import searchRouter from "./routes/search.js";
 import tagsRouter from "./routes/tags.js";
+import { ERROR_CODES } from "./lib/errorCodes.js";
 import { errorHandler } from "./lib/httpError.js";
 
 const app = express();
@@ -38,7 +39,7 @@ app.disable("x-powered-by");
 app.use(express.json());
 app.use(cookieParser());
 apiRoutes.forEach(([route, router]) => app.use(route, router));
-app.use("/api", (req, res) => res.status(404).json({ message: "API endpoint not found" }));
+app.use("/api", (req, res) => res.status(404).json({ error: { code: ERROR_CODES.API_NOT_FOUND } }));
 app.use(express.static(clientDistPath));
 app.get(/.*/, (req, res) => res.sendFile(path.join(clientDistPath, "index.html")));
 app.use(errorHandler);

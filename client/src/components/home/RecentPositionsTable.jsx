@@ -5,6 +5,7 @@ import { useAsyncData } from '../../hooks/useAsyncData.js'
 import { useTableLink } from '../../hooks/useTableLink.js'
 import CommonDataTable from '../common/CommonDataTable.jsx'
 import AccessBadge from '../common/AccessBadge.jsx'
+import ErrorAlert from '../common/ErrorAlert.jsx'
 
 const fetchRecent = () => listRecentPositions({ limit: 5 })
 const tableOptions = { paging: false, info: false, ordering: false }
@@ -39,7 +40,7 @@ const RecentPositionsTable = () => {
         { data: (row) => row._count?.resumes ?? 0, title: t('positions.table.resumes'), className: 'min-tablet-p text-start text-md-end' },
     ], [t, tableLink])
 
-    if (error) return <div className="alert alert-danger">{error}</div>
+    if (error) return <ErrorAlert error={error} />
     if (loading) return <p className="text-muted">{t('positions.loading')}</p>
 
     return (

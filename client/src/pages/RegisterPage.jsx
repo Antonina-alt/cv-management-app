@@ -2,6 +2,9 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Button, Card, Col, Container, Form, Row } from 'react-bootstrap'
 import { useTranslation } from 'react-i18next'
+import ErrorAlert from '../components/common/ErrorAlert.jsx'
+import FieldError from '../components/common/FieldError.jsx'
+import { isFieldError } from '../lib/errors.js'
 import { useAuth } from '../context/auth-context.js'
 
 const RegisterPage = () => {
@@ -20,7 +23,7 @@ const RegisterPage = () => {
             await register(form)
             navigate('/', { replace: true })
         } catch (err) {
-            setError(err.message)
+            setError(err)
         }
     }
 
@@ -44,10 +47,12 @@ const RegisterPage = () => {
                                     <Form.Label>{t('auth.email')}</Form.Label>
                                     <Form.Control
                                         type="email"
+                                        isInvalid={isFieldError(error, 'email')}
                                         value={form.email}
                                         onChange={handleChange('email')}
                                         required
                                     />
+                                    <FieldError error={error} field="email" />
                                 </Form.Group>
                                 <Form.Group className="mb-3" controlId="password">
                                     <Form.Label>{t('auth.password')}</Form.Label>
@@ -58,7 +63,7 @@ const RegisterPage = () => {
                                         required
                                     />
                                 </Form.Group>
-                                {error && <div className="alert alert-danger" role="alert">{error}</div>}
+                                <ErrorAlert error={error?.field ? null : error} />
                                 <Button type="submit" variant="primary" className="w-100">
                                     {t('auth.submitRegister')}
                                 </Button>

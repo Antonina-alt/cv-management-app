@@ -1,6 +1,7 @@
 import bcrypt from "bcryptjs";
 import { prisma } from "../lib/prisma.js";
-import { badRequest, conflict, forbidden, unauthorized } from "../lib/httpError.js";
+import { ERROR_CODES } from "../lib/errorCodes.js";
+import { badRequest, conflict, forbidden, notFound, unauthorized } from "../lib/httpError.js";
 import { hasOwnFields, mapDefinedFields } from "../lib/objects.js";
 import { findUserWithRoles, toPublicUser } from "../lib/users.js";
 import { updateVersioned } from "../lib/versioning.js";
@@ -25,14 +26,19 @@ const createUser = (body, passwordHash) => prisma.user.create({
 const validateRegistration = (body) => requireFields(
     body,
     ["email", "password", "firstName", "lastName"],
-    "email, password, firstName, lastName are required",
+    ERROR_CODES.REGISTRATION_FIELDS_REQUIRED,
 );
 
 export const registerUser = async (body) => {
     validateRegistration(body);
-    if (await prisma.user.findUnique({ where: { email: body.email } })) conflict("Email already registered");
+    if (await prisma.user.findUnique({ where: { email: body.email } })) conflict(ERROR_CODES.EMAIL_ALREADY_REGISTERED, { field: "email" });
     const passwordHash = await bcrypt.hash(body.password, 10);
-    return createUser(body, passwordHash);
+    try {
+        return await createUser(body, passwordHash);
+    } catch (error) {
+        if (error.code !== "P2002") throw error;
+        conflict(ERROR_CODES.EMAIL_ALREADY_REGISTERED, { field: "email" });
+    }
 };
 
 const findUserForLogin = (email) => prisma.user.findUnique({
@@ -41,21 +47,21 @@ const findUserForLogin = (email) => prisma.user.findUnique({
 });
 
 const validatePassword = async (user, password) => {
-    if (!user?.credential) unauthorized("Invalid email or password");
-    if (!await bcrypt.compare(password, user.credential.passwordHash)) unauthorized("Invalid email or password");
+    if (!user?.credential) unauthorized(ERROR_CODES.INVALID_CREDENTIALS);
+    if (!await bcrypt.compare(password, user.credential.passwordHash)) unauthorized(ERROR_CODES.INVALID_CREDENTIALS);
 };
 
 export const loginUser = async (body) => {
-    requireFields(body, ["email", "password"], "email and password are required");
+    requireFields(body, ["email", "password"], ERROR_CODES.INVALID_CREDENTIALS);
     const user = await findUserForLogin(body.email);
     await validatePassword(user, body.password);
-    if (user.isBlocked) forbidden("Your account has been blocked");
+    if (user.isBlocked) forbidden(ERROR_CODES.ACCOUNT_BLOCKED);
     return user;
 };
 
 const validatePreference = (name, value) => {
     if (value === undefined || PREFERENCE_VALUES[name].includes(value)) return;
-    badRequest(`${name} must be ${PREFERENCE_VALUES[name].join(" or ")}`);
+    badRequest(ERROR_CODES.INVALID_PREFERENCE, { field: name, params: { values: PREFERENCE_VALUES[name].join(", ") } });
 };
 
 const preferenceData = (body) => mapDefinedFields(body, {
@@ -63,12 +69,18 @@ const preferenceData = (body) => mapDefinedFields(body, {
     language: (value) => value,
 });
 
+const loadPublicUser = async (userId) => {
+    const user = await findUserWithRoles(userId);
+    if (!user) notFound(ERROR_CODES.USER_NOT_FOUND);
+    return toPublicUser(user);
+};
+
 export const updatePreferences = async (userId, body) => {
     const version = requireVersion(body);
     Object.keys(PREFERENCE_VALUES).forEach((name) => validatePreference(name, body[name]));
     const data = preferenceData(body);
-    if (!hasOwnFields(data)) badRequest("theme or language is required");
+    if (!hasOwnFields(data)) badRequest(ERROR_CODES.PREFERENCES_REQUIRED);
     const result = await updateVersioned(prisma.user, userId, version, data);
-    if (result.count === 0) conflict("Version conflict", { user: toPublicUser(await findUserWithRoles(userId)) });
-    return toPublicUser(await findUserWithRoles(userId));
+    if (result.count === 0) conflict(ERROR_CODES.VERSION_CONFLICT, { resource: "user", user: await loadPublicUser(userId) });
+    return loadPublicUser(userId);
 };

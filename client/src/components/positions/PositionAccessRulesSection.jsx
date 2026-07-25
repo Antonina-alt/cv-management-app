@@ -33,7 +33,7 @@ const PositionAccessRulesSection = ({ rules, onSave, disabled }) => {
             selection.clear()
             closeModal()
         } catch (error) {
-            setFormError(error.message)
+            setFormError(error)
         }
     }
     const create = (payload) => save([...rules.map(ruleToPayload), payload])

@@ -1,4 +1,5 @@
 import jwt from "jsonwebtoken";
+import { ERROR_CODES } from "../lib/errorCodes.js";
 import { prisma } from "../lib/prisma.js";
 import { hasRole, isAdmin, isOwnerOrAdmin } from "../lib/roles.js";
 import { toPublicUser } from "../lib/users.js";
@@ -16,7 +17,9 @@ const authenticate = async (req) => {
     return user ? toPublicUser(user) : null;
 };
 
-const rejectAuthentication = (res) => res.status(401).json({ message: "Not authenticated" });
+const errorBody = (code) => ({ error: { code } });
+const rejectAuthentication = (res) => res.status(401).json(errorBody(ERROR_CODES.AUTH_REQUIRED));
+const rejectAuthorization = (res) => res.status(403).json(errorBody(ERROR_CODES.FORBIDDEN));
 
 export const requireAuth = async (req, res, next) => {
     try {
@@ -39,11 +42,11 @@ export const optionalAuth = async (req, res, next) => {
 export const requireRole = (...roles) => (req, res, next) => {
     if (!req.user) return rejectAuthentication(res);
     if (isAdmin(req.user) || roles.some((role) => hasRole(req.user, role))) return next();
-    return res.status(403).json({ message: "Forbidden" });
+    return rejectAuthorization(res);
 };
 
 export const requireSelfOrAdmin = (paramName = "candidateId") => (req, res, next) => {
     if (!req.user) return rejectAuthentication(res);
     if (isOwnerOrAdmin(req.user, req.params[paramName])) return next();
-    return res.status(403).json({ message: "Forbidden" });
+    return rejectAuthorization(res);
 };

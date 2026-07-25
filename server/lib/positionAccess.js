@@ -1,3 +1,5 @@
+import { ERROR_CODES } from "./errorCodes.js";
+
 const ACCESS_OPERATORS_BY_TYPE = {
     STRING: ["EQUALS", "NOT_EQUALS"],
     TEXT: ["EQUALS", "NOT_EQUALS"],
@@ -14,27 +16,29 @@ const EMPTY_RULE_VALUE = {
     optionId: null,
 };
 
+const validationError = (code, field, params) => ({ error: { code, field, params } });
+
 const requiredString = (value, field) => value
     ? { [field]: String(value) }
-    : { error: `${field} is required` };
+    : validationError(ERROR_CODES.POSITION_ACCESS_RULE_VALUE_REQUIRED, field);
 
 const validateRuleString = (body) => requiredString(body.stringValue, "stringValue");
 
 const validateRuleNumber = (body) => {
-    if (body.numberValue == null || body.numberValue === "") return { error: "numberValue is required" };
+    if (body.numberValue == null || body.numberValue === "") return validationError(ERROR_CODES.POSITION_ACCESS_RULE_VALUE_REQUIRED, "numberValue");
     const numberValue = Number(body.numberValue);
-    return Number.isNaN(numberValue) ? { error: "numberValue must be a number" } : { numberValue };
+    return Number.isNaN(numberValue) ? validationError(ERROR_CODES.POSITION_ACCESS_RULE_NUMBER_INVALID, "numberValue") : { numberValue };
 };
 
 const validateRuleDate = (body) => {
-    if (!body.dateValue) return { error: "dateValue is required" };
+    if (!body.dateValue) return validationError(ERROR_CODES.POSITION_ACCESS_RULE_VALUE_REQUIRED, "dateValue");
     const dateValue = new Date(body.dateValue);
-    return Number.isNaN(dateValue.getTime()) ? { error: "dateValue must be a valid date" } : { dateValue };
+    return Number.isNaN(dateValue.getTime()) ? validationError(ERROR_CODES.POSITION_ACCESS_RULE_DATE_INVALID, "dateValue") : { dateValue };
 };
 
 const validateRuleSelect = (attribute, body) => {
     const exists = attribute.options?.some(({ id }) => id === body.optionId);
-    return exists ? { optionId: body.optionId } : { error: "optionId must reference one of the attribute's options" };
+    return exists ? { optionId: body.optionId } : validationError(ERROR_CODES.POSITION_ACCESS_RULE_OPTION_INVALID, "optionId");
 };
 
 const RULE_VALIDATORS = {
@@ -48,15 +52,15 @@ const RULE_VALIDATORS = {
 
 const validateOperator = (type, operator) => {
     const operators = ACCESS_OPERATORS_BY_TYPE[type];
-    if (!operators) return `access rules are not supported for ${type} attributes`;
-    return operators.includes(operator) ? null : `operator ${operator} is not valid for ${type} attributes`;
+    if (!operators) return validationError(ERROR_CODES.POSITION_ACCESS_RULE_TYPE_UNSUPPORTED, "attributeId", { type });
+    return operators.includes(operator) ? null : validationError(ERROR_CODES.POSITION_ACCESS_RULE_OPERATOR_INVALID, "operator", { type });
 };
 
 export const buildAccessRuleData = (attribute, operator, body) => {
     const operatorError = validateOperator(attribute.type, operator);
-    if (operatorError) return { error: operatorError };
+    if (operatorError) return operatorError;
     const validator = RULE_VALIDATORS[attribute.type];
-    if (!validator) return { error: "unsupported attribute type" };
+    if (!validator) return validationError(ERROR_CODES.POSITION_ACCESS_RULE_TYPE_UNSUPPORTED, "attributeId", { type: attribute.type });
     const { error, ...fields } = validator(attribute, body);
     return error ? { error } : { data: { ...EMPTY_RULE_VALUE, ...fields } };
 };

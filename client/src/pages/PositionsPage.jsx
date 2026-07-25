@@ -1,10 +1,9 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { ConflictError } from '../api/http.js'
 import { createPosition, deletePosition, duplicatePosition } from '../api/positions.js'
 import ConfirmationModal from '../components/common/ConfirmationModal.jsx'
-import DismissibleAlert from '../components/common/DismissibleAlert.jsx'
+import ErrorAlert from '../components/common/ErrorAlert.jsx'
 import Toolbar from '../components/common/Toolbar.jsx'
 import PositionFormModal from '../components/positions/PositionFormModal.jsx'
 import PositionList from '../components/positions/PositionList.jsx'
@@ -32,7 +31,7 @@ const PositionsPage = () => {
             closeModal()
             navigate(`/positions/${created.id}`)
         } catch (error) {
-            setFormError(error.message)
+            setFormError(error)
         }
     }
     const handleDuplicate = async () => {
@@ -40,7 +39,7 @@ const PositionsPage = () => {
             await Promise.all(selection.items.map(({ id }) => duplicatePosition(id)))
             setBanner(null)
         } catch (error) {
-            setBanner(error.message)
+            setBanner(error)
         }
         selection.clear()
         refresh()
@@ -50,7 +49,7 @@ const PositionsPage = () => {
             await Promise.all(selection.items.map(({ id, version }) => deletePosition(id, version)))
             setBanner(null)
         } catch (error) {
-            setBanner(error instanceof ConflictError ? t('positions.conflict') : error.message)
+            setBanner(error)
         }
         selection.clear()
         closeModal()
@@ -65,7 +64,7 @@ const PositionsPage = () => {
     return (
         <div>
             <h1>{t('positions.title')}</h1>
-            <DismissibleAlert onClose={() => setBanner(null)}>{banner}</DismissibleAlert>
+            <ErrorAlert error={banner} onClose={() => setBanner(null)} />
             {canManage && <Toolbar actions={actions} />}
             <PositionList selectedIds={canManage ? selection.ids : []} onToggleRow={canManage ? selection.toggle : undefined} onToggleAll={canManage ? selection.toggleAll : undefined} refreshToken={refreshToken} />
             {modal === 'create' && <PositionFormModal show onClose={closeModal} onSubmit={handleCreate} error={formError} />}

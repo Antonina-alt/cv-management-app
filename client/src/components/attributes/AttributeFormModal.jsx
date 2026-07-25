@@ -1,6 +1,8 @@
 import { Form } from 'react-bootstrap'
 import { useTranslation } from 'react-i18next'
 import { useFormState } from '../../hooks/useFormState.js'
+import { isFieldError } from '../../lib/errors.js'
+import FieldError from '../common/FieldError.jsx'
 import FormModal from '../common/FormModal.jsx'
 import AttributeOptionsEditor from './AttributeOptionsEditor.jsx'
 
@@ -34,25 +36,21 @@ const AttributeFormModal = ({ show, onClose, onSubmit, categories, attribute, er
         <FormModal show={show} onClose={onClose} onSubmit={submit} title={t(isEdit ? 'attributes.form.editTitle' : 'attributes.form.createTitle')} error={error} cancelLabel={t('attributes.form.cancel')} submitLabel={t('attributes.form.save')}>
             <Form.Group className="mb-3">
                 <Form.Label>{t('attributes.form.name')}</Form.Label>
-                <Form.Control required {...bindField('name')} />
+                <Form.Control required isInvalid={isFieldError(error, 'name')} {...bindField('name')} />
+                <FieldError error={error} field="name" />
             </Form.Group>
-            <Form.Group className="mb-3">
-                <Form.Label>{t('attributes.form.description')}</Form.Label>
-                <Form.Control as="textarea" rows={2} {...bindField('description')} />
-            </Form.Group>
+            <Form.Group className="mb-3"><Form.Label>{t('attributes.form.description')}</Form.Label><Form.Control as="textarea" rows={2} {...bindField('description')} /></Form.Group>
             <Form.Group className="mb-3">
                 <Form.Label>{t('attributes.form.category')}</Form.Label>
-                <Form.Select required {...bindField('categoryId')}>
-                    {categories.map(({ id, name }) => <option key={id} value={id}>{name}</option>)}
-                </Form.Select>
+                <Form.Select required isInvalid={isFieldError(error, 'categoryId')} {...bindField('categoryId')}>{categories.map(({ id, name }) => <option key={id} value={id}>{name}</option>)}</Form.Select>
+                <FieldError error={error} field="categoryId" />
             </Form.Group>
             <Form.Group className="mb-3">
                 <Form.Label>{t('attributes.form.type')}</Form.Label>
-                <Form.Select required disabled={isEdit} {...bindField('type')}>
-                    {ATTRIBUTE_TYPES.map((type) => <option key={type} value={type}>{t(`attributes.types.${type}`)}</option>)}
-                </Form.Select>
+                <Form.Select required disabled={isEdit} isInvalid={isFieldError(error, 'type')} {...bindField('type')}>{ATTRIBUTE_TYPES.map((type) => <option key={type} value={type}>{t(`attributes.types.${type}`)}</option>)}</Form.Select>
+                <FieldError error={error} field="type" />
             </Form.Group>
-            {form.type === 'SELECT' && <AttributeOptionsEditor options={form.options} onChange={(options) => setField('options', options)} t={t} />}
+            {form.type === 'SELECT' && <><AttributeOptionsEditor options={form.options} onChange={(options) => setField('options', options)} t={t} /><FieldError error={error} field="options" /></>}
         </FormModal>
     )
 }

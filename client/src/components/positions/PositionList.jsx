@@ -7,7 +7,7 @@ import { useTableLink } from '../../hooks/useTableLink.js'
 import CommonDataTable from '../common/CommonDataTable.jsx'
 import { TABLE_MODE } from '../../lib/tableMode.js'
 import AccessBadge from '../common/AccessBadge.jsx'
-import DismissibleAlert from '../common/DismissibleAlert.jsx'
+import ErrorAlert from '../common/ErrorAlert.jsx'
 
 const LEVELS = ['JUNIOR', 'MIDDLE', 'SENIOR', 'LEAD', 'C_LEVEL']
 
@@ -38,7 +38,7 @@ const PositionList = ({ selectedIds = [], onToggleRow, onToggleAll, refreshToken
                     </Form.Select>
                 </div>
             </div>
-            <DismissibleAlert variant="danger">{error}</DismissibleAlert>
+            <ErrorAlert error={error} />
             {loading ? (<div className="text-muted mb-2">{t('admin.loading')}</div>) : (
                 <CommonDataTable data={loading ? [] : positions} columns={columns} emptyMessage={t('positions.empty')} mode={onToggleRow ? TABLE_MODE.MULTIPLE : TABLE_MODE.READ_ONLY} selectedIds={selectedIds} onToggleRow={onToggleRow} onToggleAll={onToggleAll} getRowLabel={(position) => position.title} />
             )}

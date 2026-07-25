@@ -2,6 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import request from "supertest";
 import app from "../app.js";
 import { prisma } from "../lib/prisma.js";
+import {ERROR_CODES} from "../lib/errorCodes.js";
 
 const unique = (label) => `${label}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
@@ -133,7 +134,10 @@ describe("POST /api/attributes", () => {
         const second = await agent
             .post("/api/attributes")
             .send({ name: name.toUpperCase(), categoryId: category.id, type: "STRING" });
-        expect(second.status).toBe(400);
+        expect(second.status).toBe(409);
+        expect(second.body.error.code).toBe(
+            ERROR_CODES.ATTRIBUTE_NAME_ALREADY_EXISTS,
+        );
     });
 });
 

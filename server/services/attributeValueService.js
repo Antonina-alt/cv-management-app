@@ -1,3 +1,4 @@
+import { ERROR_CODES } from "../lib/errorCodes.js";
 import { prisma } from "../lib/prisma.js";
 import { attributeValueInclude } from "../lib/prismaIncludes.js";
 import { buildValueData } from "../lib/attributeValues.js";
@@ -10,31 +11,33 @@ const findValueDetail = (id) => prisma.candidateAttributeValue.findUnique({
     include: attributeValueInclude,
 });
 
-const throwValueConflict = async (id) => conflict("Version conflict", {
-    attributeValue: await findValueDetail(id),
-});
+const throwValueConflict = async (id) => {
+    const attributeValue = await findValueDetail(id);
+    if (!attributeValue) notFound(ERROR_CODES.ATTRIBUTE_VALUE_NOT_FOUND);
+    conflict(ERROR_CODES.VERSION_CONFLICT, { resource: "attributeValue", attributeValue });
+};
 
 const loadOwnedValue = async (candidateId, valueId, include) => {
     const value = await prisma.candidateAttributeValue.findUnique({ where: { id: valueId }, include });
-    if (!value || value.candidateId !== candidateId) notFound("attribute value not found");
+    if (!value || value.candidateId !== candidateId) notFound(ERROR_CODES.ATTRIBUTE_VALUE_NOT_FOUND);
     return value;
 };
 
 const loadAddableAttribute = async (attributeId) => {
     const attribute = await prisma.attribute.findUnique({ where: { id: attributeId }, include: { options: true } });
-    if (!attribute) notFound("attribute not found");
-    if (attribute.systemKey) badRequest("system attributes cannot be added here");
+    if (!attribute) notFound(ERROR_CODES.ATTRIBUTE_NOT_FOUND);
+    if (attribute.systemKey) badRequest(ERROR_CODES.SYSTEM_ATTRIBUTE_VALUE_FORBIDDEN);
     return attribute;
 };
 
 const resolveValueData = (attribute, fields) => {
     const result = buildValueData(attribute, fields);
-    if (result.error) badRequest(result.error);
+    if (result.error) badRequest(result.error.code, result.error);
     return result.data;
 };
 
 export const createAttributeValue = async (candidateId, body) => {
-    if (!body.attributeId) badRequest("attributeId is required");
+    if (!body.attributeId) badRequest(ERROR_CODES.ATTRIBUTE_VALUE_REQUIRED, { field: "attributeId" });
     const attribute = await loadAddableAttribute(body.attributeId);
     const data = resolveValueData(attribute, body);
     try {
@@ -44,7 +47,7 @@ export const createAttributeValue = async (candidateId, body) => {
         });
     } catch (error) {
         if (error.code !== "P2002") throw error;
-        badRequest("this candidate already has a value for this attribute");
+        conflict(ERROR_CODES.ATTRIBUTE_VALUE_ALREADY_EXISTS, { field: "attributeId" });
     }
 };
 

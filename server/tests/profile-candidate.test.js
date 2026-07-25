@@ -3,6 +3,7 @@ import request from "supertest";
 import app from "../app.js";
 import { prisma } from "../lib/prisma.js";
 import { normalizeName } from "../lib/normalize.js";
+import {ERROR_CODES} from "../lib/errorCodes.js";
 
 const unique = (label) => `${label}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
@@ -174,7 +175,10 @@ describe("POST /api/profile/:candidateId/attribute-values", () => {
         const second = await agent
             .post(`/api/profile/${user.id}/attribute-values`)
             .send({ attributeId: stringAttribute.id, stringValue: "Native" });
-        expect(second.status).toBe(400);
+        expect(second.status).toBe(409);
+        expect(second.body.error.code).toBe(
+            ERROR_CODES.ATTRIBUTE_VALUE_ALREADY_EXISTS,
+        );
     });
 
     it("rejects adding a system attribute", async () => {

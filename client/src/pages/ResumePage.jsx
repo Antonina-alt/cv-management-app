@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { ConflictError } from '../api/http.js'
 import { updateAttributeValue } from '../api/profile.js'
 import { getResume, likeResume, publishResume, unlikeResume } from '../api/resumes.js'
-import DismissibleAlert from '../components/common/DismissibleAlert.jsx'
+import ErrorAlert from '../components/common/ErrorAlert.jsx'
 import ResumeAttributeGroups from '../components/resume/ResumeAttributeGroups.jsx'
 import ResumeHeaderCard from '../components/resume/ResumeHeaderCard.jsx'
 import ResumeIdentitySection from '../components/resume/ResumeIdentitySection.jsx'
@@ -34,10 +34,10 @@ const ResumePage = () => {
     }, [id])
     const { data: resume, setData: setResume, loading, error, reload } = useAsyncData(fetchResume)
     const isComplete = useMemo(() => Object.values(emptyMap).every((isEmpty) => !isEmpty), [emptyMap])
-    const handleConflict = useCallback(() => {
-        setBanner(t('resume.conflict'))
+    const handleConflict = useCallback((conflict) => {
+        setBanner(conflict)
         reload()
-    }, [reload, t])
+    }, [reload])
     const handleEmptyChange = useCallback((attributeId, isEmpty) => {
         setEmptyMap((current) => current[attributeId] === isEmpty ? current : { ...current, [attributeId]: isEmpty })
     }, [])
@@ -47,7 +47,7 @@ const ResumePage = () => {
             setResume((current) => current ? { ...current, attributes: current.attributes.map((item) => item.attributeId === attribute.attributeId ? { ...item, version: saved.version } : item) } : current)
             setBanner(null)
         } catch (requestError) {
-            requestError instanceof ConflictError ? handleConflict() : setBanner(requestError.message)
+            requestError instanceof ConflictError ? handleConflict(requestError) : setBanner(requestError)
         }
     }
     const handleCandidateChange = useCallback((candidate) => {
@@ -62,7 +62,7 @@ const ResumePage = () => {
             setEmptyMap(toEmptyMap(updated.attributes))
             setBanner(null)
         } catch (requestError) {
-            requestError instanceof ConflictError ? handleConflict() : setBanner(requestError.message)
+            requestError instanceof ConflictError ? handleConflict(requestError) : setBanner(requestError)
         } finally {
             setPublishing(false)
         }
@@ -73,19 +73,19 @@ const ResumePage = () => {
             const result = resume.likedByMe ? await unlikeResume(id) : await likeResume(id)
             setResume((current) => current ? { ...current, ...result } : current)
         } catch (requestError) {
-            setBanner(requestError.message)
+            setBanner(requestError)
         } finally {
             setLiking(false)
         }
     }
     if (loading) return <p className="text-muted">{t('resume.loading')}</p>
-    if (error) return <div className="alert alert-danger">{error}</div>
+    if (error) return <ErrorAlert error={error} />
     if (!resume) return null
     const canLike = Boolean(user) && user.id !== resume.candidateId && user.roles.some((role) => ['RECRUITER', 'ADMIN'].includes(role))
     return (
         <div>
             <Button variant="link" className="px-0 mb-2" onClick={() => navigate(`/positions/${resume.positionId}`)}>&larr; {resume.position.title}</Button>
-            <DismissibleAlert onClose={() => setBanner(null)}>{banner}</DismissibleAlert>
+            <ErrorAlert error={banner} onClose={() => setBanner(null)} />
             <ResumeHeaderCard resume={resume} canLike={canLike} liking={liking} publishing={publishing} isComplete={isComplete} onToggleLike={handleToggleLike} onPublish={handlePublish} t={t} />
             <h5>{t('resume.identity.title')}</h5>
             <ResumeIdentitySection candidate={resume.candidate} editableText={resume.canEdit} editableImage={resume.canEdit} autosave={autosave} onConflict={handleConflict} onCandidateChange={handleCandidateChange} />

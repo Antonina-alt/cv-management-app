@@ -7,7 +7,7 @@ import { formatDateRange } from '../../lib/formatDate.js'
 import CommonDataTable from '../common/CommonDataTable.jsx'
 import { TABLE_MODE } from '../../lib/tableMode.js'
 import ConfirmationModal from '../common/ConfirmationModal.jsx'
-import DismissibleAlert from '../common/DismissibleAlert.jsx'
+import ErrorAlert from '../common/ErrorAlert.jsx'
 import Toolbar from '../common/Toolbar.jsx'
 import ProjectFormModal from './ProjectFormModal.jsx'
 
@@ -30,7 +30,7 @@ const ProjectsSection = ({ candidateId, initialProjects, onConflict }) => {
             setProjects((current) => [project, ...current])
             closeModal()
         } catch (error) {
-            setFormError(error.message)
+            setFormError(error)
         }
     }
     const edit = async (payload) => {
@@ -40,10 +40,10 @@ const ProjectsSection = ({ candidateId, initialProjects, onConflict }) => {
             selection.clear()
             closeModal()
         } catch (error) {
-            if (!(error instanceof ConflictError)) return setFormError(error.message)
+            if (!(error instanceof ConflictError)) return setFormError(error)
             selection.clear()
             closeModal()
-            onConflict?.()
+            onConflict?.(error)
         }
     }
     const remove = async () => {
@@ -53,7 +53,7 @@ const ProjectsSection = ({ candidateId, initialProjects, onConflict }) => {
             setProjects((current) => current.filter(({ id }) => !removed.has(id)))
             setBanner(null)
         } catch (error) {
-            error instanceof ConflictError ? onConflict?.() : setBanner(error.message)
+            error instanceof ConflictError ? onConflict?.(error) : setBanner(error)
         }
         selection.clear()
         closeModal()
@@ -71,7 +71,7 @@ const ProjectsSection = ({ candidateId, initialProjects, onConflict }) => {
     ]
     return (
         <div>
-            <DismissibleAlert onClose={() => setBanner(null)}>{banner}</DismissibleAlert>
+            <ErrorAlert error={banner} onClose={() => setBanner(null)} />
             <Toolbar actions={actions} />
             <CommonDataTable data={projects} columns={columns} emptyMessage={t('profile.projects.empty')} mode={TABLE_MODE.MULTIPLE} selectedIds={selection.ids} onToggleRow={selection.toggle} onToggleAll={selection.toggleAll} getRowLabel={(row) => row.title} />
             {modal === 'create' && <ProjectFormModal show onClose={closeModal} onSubmit={create} error={formError} />}

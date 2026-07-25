@@ -2,7 +2,7 @@ import { useCallback } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { search } from '../api/search.js'
-import DismissibleAlert from '../components/common/DismissibleAlert.jsx'
+import ErrorAlert from '../components/common/ErrorAlert.jsx'
 import SearchResultTables from '../components/search/SearchResultTables.jsx'
 import { useAsyncData } from '../hooks/useAsyncData.js'
 
@@ -20,7 +20,7 @@ const SearchResultsPage = () => {
             <h1>{t('search.title')}</h1>
             <p>{t('search.resultsFor', { query })}</p>
             {loading && <p className="text-muted">{t('search.loading')}</p>}
-            <DismissibleAlert variant="danger">{error}</DismissibleAlert>
+            <ErrorAlert error={error} />
             {results && <><SearchResultTables results={results} />{isEmpty(results) && <p className="text-muted mt-3">{t('search.emptyAll')}</p>}</>}
         </div>
     )

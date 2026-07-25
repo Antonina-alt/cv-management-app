@@ -109,7 +109,7 @@ describe("POST /api/auth/login and GET /api/auth/me", () => {
             .send({ email, password: "correct-password" });
 
         expect(res.status).toBe(403);
-        expect(res.body.message).toBe("Your account has been blocked");
+        expect(res.body.error.code).toBe("ACCOUNT_BLOCKED");
     });
 
     it("rejects login for a blocked user with a wrong password using the generic 401 message", async () => {
@@ -122,7 +122,7 @@ describe("POST /api/auth/login and GET /api/auth/me", () => {
             .send({ email, password: "wrong-password" });
 
         expect(res.status).toBe(401);
-        expect(res.body.message).toBe("Invalid email or password");
+        expect(res.body.error.code).toBe("INVALID_CREDENTIALS");
     });
 });
 

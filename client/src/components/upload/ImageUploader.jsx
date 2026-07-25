@@ -3,10 +3,16 @@ import { Button } from 'react-bootstrap'
 import { useDropzone } from 'react-dropzone'
 import { useTranslation } from 'react-i18next'
 import { uploadImage } from '../../api/images.js'
-import DismissibleAlert from '../common/DismissibleAlert.jsx'
+import { createError } from '../../lib/errors.js'
+import ErrorAlert from '../common/ErrorAlert.jsx'
 
 const ALLOWED_MIME_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/gif']
 const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024
+
+const rejectionError = (rejectedFiles) => {
+    const code = rejectedFiles[0]?.errors[0]?.code
+    return createError(code === 'file-too-large' ? 'IMAGE_TOO_LARGE' : 'IMAGE_TYPE_INVALID')
+}
 
 const ImageUploader = ({ value, onUpload, onRemove, disabled }) => {
     const { t } = useTranslation()
@@ -14,25 +20,20 @@ const ImageUploader = ({ value, onUpload, onRemove, disabled }) => {
     const [error, setError] = useState(null)
 
     const onDrop = useCallback((acceptedFiles, rejectedFiles) => {
-        if (rejectedFiles.length > 0) {
-            setError(t('profile.image.invalid'))
-            return
-        }
-
+        if (rejectedFiles.length) return setError(rejectionError(rejectedFiles))
         const file = acceptedFiles[0]
         if (!file) return
-
         setError(null)
         setUploading(true)
         uploadImage(file)
-            .then((body) => onUpload(body.url))
-            .catch(() => setError(t('profile.image.uploadFailed')))
+            .then(({ url }) => onUpload(url))
+            .catch(setError)
             .finally(() => setUploading(false))
-    }, [onUpload, t])
+    }, [onUpload])
 
     const { getRootProps, getInputProps, isDragActive } = useDropzone({
         onDrop,
-        accept: ALLOWED_MIME_TYPES.reduce((acc, type) => ({ ...acc, [type]: [] }), {}),
+        accept: Object.fromEntries(ALLOWED_MIME_TYPES.map((type) => [type, []])),
         maxSize: MAX_FILE_SIZE_BYTES,
         maxFiles: 1,
         disabled: disabled || uploading,
@@ -48,28 +49,11 @@ const ImageUploader = ({ value, onUpload, onRemove, disabled }) => {
                 style={{ cursor: disabled || uploading ? 'default' : 'pointer', display: showDropzoneChrome ? 'block' : 'inline-block' }}
             >
                 <input {...getInputProps()} />
-                {value ? (
-                    <img
-                        src={value}
-                        alt={t('profile.image.preview')}
-                        className={showDropzoneChrome ? 'img-thumbnail mb-2' : 'img-thumbnail'}
-                        style={{ maxWidth: 160, maxHeight: 160 }}
-                    />
-                ) : null}
-                {showDropzoneChrome && (
-                    <p className="mb-0 text-muted">
-                        {uploading ? t('profile.image.uploading') : t('profile.image.dropHint')}
-                    </p>
-                )}
+                {value && <img src={value} alt={t('profile.image.preview')} className={showDropzoneChrome ? 'img-thumbnail mb-2' : 'img-thumbnail'} style={{ maxWidth: 160, maxHeight: 160 }} />}
+                {showDropzoneChrome && <p className="mb-0 text-muted">{uploading ? t('profile.image.uploading') : t('profile.image.dropHint')}</p>}
             </div>
-
-            <DismissibleAlert variant="danger" className="mt-2 mb-0">{error}</DismissibleAlert>
-
-            {value && !uploading && (
-                <Button type="button" variant="outline-danger" size="sm" className="mt-2" disabled={disabled} onClick={onRemove}>
-                    {t('profile.image.remove')}
-                </Button>
-            )}
+            <ErrorAlert error={error} className="mt-2 mb-0" />
+            {value && !uploading && <Button type="button" variant="outline-danger" size="sm" className="mt-2" disabled={disabled} onClick={onRemove}>{t('profile.image.remove')}</Button>}
         </div>
     )
 }

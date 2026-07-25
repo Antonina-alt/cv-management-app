@@ -2,6 +2,7 @@ import { describe, it, expect, afterAll } from "vitest";
 import request from "supertest";
 import app from "../app.js";
 import { prisma } from "../lib/prisma.js";
+import {ERROR_CODES} from "../lib/errorCodes.js";
 
 const unique = (label) => `${label}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
@@ -157,7 +158,10 @@ describe("POST/DELETE /api/admin/users/:id/roles/:role", () => {
         const { user: target } = await registerAndLogin(["RECRUITER"], "roles-dup-target");
 
         const res = await agent.post(`/api/admin/users/${target.id}/roles`).send({ role: "RECRUITER" });
-        expect(res.status).toBe(400);
+        expect(res.status).toBe(409);
+        expect(res.body.error.code).toBe(
+            ERROR_CODES.ROLE_ALREADY_ASSIGNED,
+        );
     });
 
     it("rejects an unknown role", async () => {

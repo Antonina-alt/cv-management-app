@@ -8,7 +8,7 @@ import { pickValueFields } from '../../lib/attributeValueFields.js'
 import AttributeList from '../attributes/AttributeList.jsx'
 import CommonDataTable from '../common/CommonDataTable.jsx'
 import { TABLE_MODE } from '../../lib/tableMode.js'
-import DismissibleAlert from '../common/DismissibleAlert.jsx'
+import ErrorAlert from '../common/ErrorAlert.jsx'
 import Toolbar from '../common/Toolbar.jsx'
 import AttributeValueField from './AttributeValueField.jsx'
 
@@ -40,7 +40,7 @@ const InformationSection = ({ candidateId, initialValues, autosave, onConflict }
             versions.current.set(valueId, saved.version)
             setBanner(null)
         } catch (error) {
-            error instanceof ConflictError ? onConflict?.() : setBanner(error.message)
+            error instanceof ConflictError ? onConflict?.(error) : setBanner(error)
         }
     }, [candidateId, onConflict])
     const addAttributes = async () => {
@@ -50,7 +50,7 @@ const InformationSection = ({ candidateId, initialValues, autosave, onConflict }
             setValues((current) => [...current, ...created])
             setBanner(null)
         } catch (error) {
-            setBanner(error.message)
+            setBanner(error)
         }
         closePicker()
     }
@@ -62,7 +62,7 @@ const InformationSection = ({ candidateId, initialValues, autosave, onConflict }
             setValues((current) => current.filter(({ id }) => !removedIds.has(id)))
             setBanner(null)
         } catch (error) {
-            error instanceof ConflictError ? onConflict?.() : setBanner(error.message)
+            error instanceof ConflictError ? onConflict?.(error) : setBanner(error)
         }
         selection.clear()
     }
@@ -77,7 +77,7 @@ const InformationSection = ({ candidateId, initialValues, autosave, onConflict }
     ]
     return (
         <div>
-            <DismissibleAlert onClose={() => setBanner(null)}>{banner}</DismissibleAlert>
+            <ErrorAlert error={banner} onClose={() => setBanner(null)} />
             <Toolbar actions={actions} />
             <CommonDataTable data={values} columns={columns} emptyMessage={t('profile.info.empty')} mode={TABLE_MODE.MULTIPLE} selectedIds={selection.ids} onToggleRow={selection.toggle} onToggleAll={selection.toggleAll} getRowLabel={(row) => row.attribute.name} />
             <Modal show={showPicker} onHide={closePicker} size="lg">

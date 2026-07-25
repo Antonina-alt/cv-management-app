@@ -7,7 +7,7 @@ import { formatDate } from '../../lib/formatDate.js'
 import { formatName } from '../../lib/formatName.js'
 import CommonDataTable from '../common/CommonDataTable.jsx'
 import { TABLE_MODE } from '../../lib/tableMode.js'
-import DismissibleAlert from '../common/DismissibleAlert.jsx'
+import ErrorAlert from '../common/ErrorAlert.jsx'
 
 const UserList = ({ selectedIds = [], onToggleRow, onToggleAll, refreshToken }) => {
     const { t, i18n } = useTranslation()
@@ -25,7 +25,7 @@ const UserList = ({ selectedIds = [], onToggleRow, onToggleAll, refreshToken }) 
     return (
         <div>
             <div className="row g-2 mb-3"><div className="col-12 col-md-7 col-lg-5"><Form.Control type="search" placeholder={t('admin.searchPlaceholder')} value={query} onChange={(event) => setQuery(event.target.value)} aria-label={t('admin.searchPlaceholder')} /></div></div>
-            <DismissibleAlert variant="danger">{error}</DismissibleAlert>
+            <ErrorAlert error={error} />
             {loading ? (<div className="text-muted mb-2"> {t('admin.loading')}</div>) : (
                 <CommonDataTable data={users} columns={columns} emptyMessage={t('admin.empty')} mode={onToggleRow ? TABLE_MODE.MULTIPLE : TABLE_MODE.READ_ONLY} selectedIds={selectedIds} onToggleRow={onToggleRow} onToggleAll={onToggleAll} getRowLabel={formatName}/>
             )}

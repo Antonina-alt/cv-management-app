@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import { useIdentityForm } from '../../hooks/useIdentityForm.js'
-import DismissibleAlert from '../common/DismissibleAlert.jsx'
+import ErrorAlert from '../common/ErrorAlert.jsx'
 import IdentityFields from '../profile/IdentityFields.jsx'
 import ImageUploader from '../upload/ImageUploader.jsx'
 
@@ -12,10 +12,10 @@ const IdentityPhoto = ({ candidate, editable, onUpload, onRemove, t }) => {
 
 const ResumeIdentitySection = ({ candidate, editableText, editableImage, autosave, onConflict, onCandidateChange }) => {
     const { t } = useTranslation()
-    const identity = useIdentityForm(candidate, { autosaveKey: 'resume-about', conflictMessage: t('resume.identity.conflict'), autosave, onConflict, onCandidateChange })
+    const identity = useIdentityForm(candidate, { autosaveKey: 'resume-about', autosave, onConflict, onCandidateChange })
     return (
         <div>
-            <DismissibleAlert onClose={() => identity.setBanner(null)}>{identity.banner}</DismissibleAlert>
+            <ErrorAlert error={identity.banner} onClose={() => identity.setBanner(null)} />
             <div className="row g-4">
                 <div className="col-md-3"><IdentityPhoto candidate={candidate} editable={editableImage} onUpload={identity.handleUploadImage} onRemove={identity.handleRemoveImage} t={t} /></div>
                 <div className="col-md-9"><IdentityFields form={identity.form} disabled={!editableText} highlightEmpty onChange={identity.handleField} t={t} /></div>

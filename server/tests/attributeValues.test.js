@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildValueData } from "../lib/attributeValues.js";
+import {ERROR_CODES} from "../lib/errorCodes.js";
 
 describe("buildValueData", () => {
     it("keeps an omitted boolean value empty", () => {
@@ -17,6 +18,9 @@ describe("buildValueData", () => {
             dateFrom: "2026-05-02",
             dateTo: "2026-05-01",
         });
-        expect(result.error).toBe("dateTo must be on or after dateFrom");
+        expect(result.error).toEqual({
+            code: ERROR_CODES.ATTRIBUTE_VALUE_DATE_RANGE_INVALID,
+            field: "dateTo",
+        });
     });
 });

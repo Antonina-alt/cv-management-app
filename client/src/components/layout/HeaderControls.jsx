@@ -24,7 +24,7 @@ const HeaderControls = ({ user, theme, language, onThemeChange, onLanguageChange
                 <Dropdown.Menu><Dropdown.Item as="button" onClick={onLogout}>{t('header.logout')}</Dropdown.Item></Dropdown.Menu>
             </Dropdown>
         ) : (
-            <Nav><Nav.Link as={Link} to="/login">{t('header.login')}</Nav.Link><Nav.Link as={Link} to="/register">{t('header.register')}</Nav.Link></Nav>
+            <Nav className="flex-row flex-nowrap align-items-center gap-2"><Nav.Link as={Link} to="/login">{t('header.login')}</Nav.Link><Nav.Link as={Link} to="/register">{t('header.register')}</Nav.Link></Nav>
         )}
     </div>
 )

@@ -10,7 +10,7 @@ describe('App', () => {
 
     it('shows the public home page for an unauthenticated visitor', async () => {
         vi.stubGlobal('fetch', vi.fn(() =>
-            Promise.resolve({ ok: false, status: 401, json: () => Promise.resolve({ message: 'Not authenticated' }) })
+            Promise.resolve({ ok: false, status: 401, json: () => Promise.resolve({ error: { code: 'AUTH_REQUIRED' } }) })
         ))
 
         render(<App />)
@@ -20,7 +20,7 @@ describe('App', () => {
 
     it('redirects an unauthenticated visitor away from /profile to login', async () => {
         vi.stubGlobal('fetch', vi.fn(() =>
-            Promise.resolve({ ok: false, status: 401, json: () => Promise.resolve({ message: 'Not authenticated' }) })
+            Promise.resolve({ ok: false, status: 401, json: () => Promise.resolve({ error: { code: 'AUTH_REQUIRED' } }) })
         ))
         window.history.pushState({}, '', '/profile')
 

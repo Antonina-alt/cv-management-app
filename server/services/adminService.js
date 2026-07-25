@@ -1,3 +1,4 @@
+import { ERROR_CODES } from "../lib/errorCodes.js";
 import { prisma } from "../lib/prisma.js";
 import { badRequest, conflict, notFound } from "../lib/httpError.js";
 import { findUserWithRoles, toAdminUser } from "../lib/users.js";
@@ -13,13 +14,13 @@ const userSearchWhere = (query) => query ? {
 } : {};
 
 const requireRole = (role) => {
-    if (!ROLES.includes(role)) badRequest("invalid role");
+    if (!ROLES.includes(role)) badRequest(ERROR_CODES.ROLE_INVALID, { field: "role" });
     return role;
 };
 
 const loadAdminUser = async (id) => {
     const user = await findUserWithRoles(id);
-    if (!user) notFound("user not found");
+    if (!user) notFound(ERROR_CODES.USER_NOT_FOUND);
     return user;
 };
 
@@ -34,8 +35,8 @@ export const listUsers = async (query) => {
 
 const validateBlockChange = (actorId, userId, body) => {
     requireVersion(body);
-    if (body.isBlocked === undefined) badRequest("isBlocked is required");
-    if (actorId === userId && body.isBlocked) badRequest("cannot block your own account");
+    if (body.isBlocked === undefined) badRequest(ERROR_CODES.BLOCK_STATUS_REQUIRED, { field: "isBlocked" });
+    if (actorId === userId && body.isBlocked) badRequest(ERROR_CODES.SELF_BLOCK_FORBIDDEN);
 };
 
 export const updateUserBlock = async (actorId, userId, body) => {
@@ -47,13 +48,13 @@ export const updateUserBlock = async (actorId, userId, body) => {
 
 const resolveUserUpdateFailure = async (userId) => {
     const user = await findUserWithRoles(userId);
-    if (!user) notFound("user not found");
-    conflict("Version conflict", { user: toAdminUser(user) });
+    if (!user) notFound(ERROR_CODES.USER_NOT_FOUND);
+    conflict(ERROR_CODES.VERSION_CONFLICT, { resource: "user", user: toAdminUser(user) });
 };
 
 export const deleteUser = async (actorId, userId, body) => {
     const version = requireVersion(body);
-    if (actorId === userId) badRequest("cannot delete your own account");
+    if (actorId === userId) badRequest(ERROR_CODES.SELF_DELETE_FORBIDDEN);
     await loadAdminUser(userId);
     const result = await deleteVersioned(prisma.user, userId, version);
     if (result.count === 0) await resolveUserUpdateFailure(userId);
@@ -66,7 +67,7 @@ export const addUserRole = async (userId, role) => {
         await prisma.userRole.create({ data: { userId, role } });
     } catch (error) {
         if (error.code !== "P2002") throw error;
-        badRequest("user already has this role");
+        conflict(ERROR_CODES.ROLE_ALREADY_ASSIGNED, { field: "role" });
     }
     return toAdminUser(await loadAdminUser(userId));
 };
@@ -74,6 +75,6 @@ export const addUserRole = async (userId, role) => {
 export const removeUserRole = async (userId, role) => {
     requireRole(role);
     const result = await prisma.userRole.deleteMany({ where: { userId, role } });
-    if (result.count === 0) notFound("role not found for user");
+    if (result.count === 0) notFound(ERROR_CODES.ROLE_NOT_FOUND);
     return toAdminUser(await loadAdminUser(userId));
 };

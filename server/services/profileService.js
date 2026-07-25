@@ -1,3 +1,4 @@
+import { ERROR_CODES } from "../lib/errorCodes.js";
 import { prisma } from "../lib/prisma.js";
 import { attributeValueInclude, projectInclude } from "../lib/prismaIncludes.js";
 import { candidateHasPositionAccess } from "../lib/positionAccess.js";
@@ -16,11 +17,12 @@ const aboutFields = {
 
 const loadCandidate = async (candidateId) => {
     const user = await findUserWithRoles(candidateId);
-    if (!user) notFound("candidate not found");
+    if (!user) notFound(ERROR_CODES.PROFILE_NOT_FOUND);
     return user;
 };
 
-const throwUserConflict = async (candidateId) => conflict("Version conflict", {
+const throwUserConflict = async (candidateId) => conflict(ERROR_CODES.VERSION_CONFLICT, {
+    resource: "profile",
     user: toPublicUser(await loadCandidate(candidateId)),
 });
 
@@ -31,7 +33,7 @@ const updateCandidate = async (candidateId, version, data) => {
 };
 
 export const setCandidateImage = (candidateId, body) => {
-    if (!body.imageUrl || body.version === undefined) badRequest("imageUrl and version are required");
+    if (!body.imageUrl || body.version === undefined) badRequest(ERROR_CODES.PROFILE_IMAGE_FIELDS_REQUIRED);
     return updateCandidate(candidateId, body.version, { imageUrl: body.imageUrl });
 };
 
@@ -86,6 +88,6 @@ export const getProfile = async (candidateId, viewer) => {
 export const updateAbout = async (candidateId, body) => {
     const version = requireVersion(body);
     const data = mapDefinedFields(body, aboutFields);
-    if (!hasOwnFields(data)) badRequest("at least one of firstName, lastName, location is required");
+    if (!hasOwnFields(data)) badRequest(ERROR_CODES.PROFILE_FIELDS_REQUIRED);
     return updateCandidate(candidateId, version, data);
 };

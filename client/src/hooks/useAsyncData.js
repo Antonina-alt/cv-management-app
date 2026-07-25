@@ -1,7 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
 
-const toMessage = (error) => error?.message ?? String(error)
-
 export const useAsyncData = (fetcher, { debounceMs = 0, enabled = true, refreshKey } = {}) => {
     const [data, setData] = useState(null)
     const [loading, setLoading] = useState(enabled)
@@ -18,7 +16,7 @@ export const useAsyncData = (fetcher, { debounceMs = 0, enabled = true, refreshK
                 const result = await fetcher()
                 if (active) setData(result)
             } catch (requestError) {
-                if (active) setError(toMessage(requestError))
+                if (active) setError(requestError)
             } finally {
                 if (active) setLoading(false)
             }

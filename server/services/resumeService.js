@@ -1,3 +1,4 @@
+import { ERROR_CODES } from "../lib/errorCodes.js";
 import { prisma } from "../lib/prisma.js";
 import { positionDetailInclude, projectInclude } from "../lib/prismaIncludes.js";
 import { candidateHasPositionAccess } from "../lib/positionAccess.js";
@@ -13,13 +14,13 @@ const loadPosition = async (positionId) => {
         where: { id: positionId },
         include: positionDetailInclude,
     });
-    if (!position) notFound("position not found");
+    if (!position) notFound(ERROR_CODES.POSITION_NOT_FOUND);
     return position;
 };
 
 const loadResume = async (id) => {
     const resume = await prisma.resume.findUnique({ where: { id } });
-    if (!resume) notFound("resume not found");
+    if (!resume) notFound(ERROR_CODES.RESUME_NOT_FOUND);
     return resume;
 };
 
@@ -105,7 +106,7 @@ const createResumeRecord = async (candidateId, position, values) => prisma.$tran
 });
 
 export const createResume = async (user, body) => {
-    if (!body.positionId) badRequest("positionId is required");
+    if (!body.positionId) badRequest(ERROR_CODES.RESUME_POSITION_REQUIRED, { field: "positionId" });
     const position = await loadPosition(body.positionId);
     const values = await loadCandidateValues(user.id);
     ensureCreateAccess(user, position, values);
@@ -114,7 +115,7 @@ export const createResume = async (user, body) => {
         return buildDetail(resume, position, true, user.id);
     } catch (error) {
         if (error.code !== "P2002") throw error;
-        conflict("a resume already exists for this position");
+        conflict(ERROR_CODES.RESUME_ALREADY_EXISTS);
     }
 };
 
@@ -136,13 +137,15 @@ export const getResume = async (user, id) => {
     return buildDetail(resume, position, access.owner, user.id);
 };
 
-const throwResumeConflict = async (id) => conflict("Version conflict", {
-    resume: await prisma.resume.findUnique({ where: { id } }),
-});
+const throwResumeConflict = async (id) => {
+    const resume = await prisma.resume.findUnique({ where: { id } });
+    if (!resume) notFound(ERROR_CODES.RESUME_NOT_FOUND);
+    conflict(ERROR_CODES.VERSION_CONFLICT, { resource: "resume", resume });
+};
 
 const ensurePublishable = (user, resume, attributes) => {
     if (!isOwnerOrAdmin(user, resume.candidateId)) forbidden();
-    if (!isResumeComplete(attributes)) badRequest("all attributes must be filled before publishing");
+    if (!isResumeComplete(attributes)) badRequest(ERROR_CODES.RESUME_INCOMPLETE);
 };
 
 export const publishResume = async (user, id, body) => {
@@ -169,7 +172,7 @@ export const deleteResume = async (user, id, body) => {
 
 const loadPublishedResume = async (id) => {
     const resume = await prisma.resume.findUnique({ where: { id } });
-    if (!resume || resume.status !== "PUBLISHED") notFound("resume not found");
+    if (!resume || resume.status !== "PUBLISHED") notFound(ERROR_CODES.RESUME_NOT_FOUND);
     return resume;
 };
 

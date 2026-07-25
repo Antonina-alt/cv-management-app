@@ -1,25 +1,10 @@
+import { ERROR_CODES } from "./errorCodes.js";
+
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
-
-const dateError = (code, field, message) => ({ code, field, message });
-
-const formatError = (field) => dateError(
-    "PROJECT_DATE_FORMAT_INVALID",
-    field,
-    `${field} must use YYYY-MM-DD format`,
-);
-
-const invalidDateError = (field) => dateError(
-    "PROJECT_DATE_INVALID",
-    field,
-    `${field} must be a valid date`,
-);
-
-const rangeError = () => dateError(
-    "PROJECT_DATE_RANGE_INVALID",
-    "endDate",
-    "endDate must be on or after startDate",
-);
-
+const dateError = (code, field) => ({ code, field });
+const formatError = (field) => dateError(ERROR_CODES.PROJECT_DATE_FORMAT_INVALID, field);
+const invalidDateError = (field) => dateError(ERROR_CODES.PROJECT_DATE_INVALID, field);
+const rangeError = () => dateError(ERROR_CODES.PROJECT_DATE_RANGE_INVALID, "endDate");
 const isValidDateString = (value) => typeof value === "string" && DATE_PATTERN.test(value);
 
 const parseIsoDate = (value) => {

@@ -5,7 +5,7 @@ import { ConflictError } from '../api/http.js'
 import AttributeFormModal from '../components/attributes/AttributeFormModal.jsx'
 import AttributeList from '../components/attributes/AttributeList.jsx'
 import ConfirmationModal from '../components/common/ConfirmationModal.jsx'
-import DismissibleAlert from '../components/common/DismissibleAlert.jsx'
+import ErrorAlert from '../components/common/ErrorAlert.jsx'
 import Toolbar from '../components/common/Toolbar.jsx'
 import { useAsyncData } from '../hooks/useAsyncData.js'
 import { useSelection } from '../hooks/useSelection.js'
@@ -35,7 +35,7 @@ const AttributesPage = () => {
             closeModal()
             refresh()
         } catch (error) {
-            setFormError(error.message)
+            setFormError(error)
         }
     }
     const handleEdit = async (payload) => {
@@ -45,8 +45,8 @@ const AttributesPage = () => {
             closeModal()
             refresh()
         } catch (error) {
-            if (!(error instanceof ConflictError)) return setFormError(error.message)
-            setBanner(t('attributes.conflict'))
+            if (!(error instanceof ConflictError)) return setFormError(error)
+            setBanner(error)
             selection.clear()
             closeModal()
             refresh()
@@ -57,7 +57,7 @@ const AttributesPage = () => {
             await Promise.all(selection.items.map(({ id, version }) => deleteAttribute(id, version)))
             setBanner(null)
         } catch (error) {
-            setBanner(error instanceof ConflictError ? t('attributes.conflict') : error.message)
+            setBanner(error)
         }
         selection.clear()
         closeModal()
@@ -72,7 +72,7 @@ const AttributesPage = () => {
     return (
         <div>
             <h1>{t('attributes.title')}</h1>
-            <DismissibleAlert onClose={() => setBanner(null)}>{banner}</DismissibleAlert>
+            <ErrorAlert error={banner} onClose={() => setBanner(null)} />
             <Toolbar actions={actions} />
             <AttributeList selectedIds={selection.ids} onToggleRow={handleToggle} onToggleAll={selection.toggleAll} refreshToken={refreshToken} />
             {modal === 'create' && <AttributeFormModal show onClose={closeModal} onSubmit={handleCreate} categories={categories} error={formError} />}

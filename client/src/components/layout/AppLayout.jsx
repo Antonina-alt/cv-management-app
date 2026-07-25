@@ -4,23 +4,29 @@ import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../../context/auth-context.js'
 import { usePreferences } from '../../context/preferences-context.js'
+import ErrorAlert from '../common/ErrorAlert.jsx'
 import HeaderControls from './HeaderControls.jsx'
 import { getNavItems } from './navConfig.js'
 
 const AppLayout = () => {
     const { t } = useTranslation()
-    const { user, logout } = useAuth()
-    const { theme, setTheme, language, setLanguage } = usePreferences()
+    const { user, logout, error: authError, clearError: clearAuthError } = useAuth()
+    const { theme, setTheme, language, setLanguage, error: preferenceError, clearError: clearPreferenceError } = usePreferences()
     const navigate = useNavigate()
     const [query, setQuery] = useState('')
+    const [layoutError, setLayoutError] = useState(null)
     const search = (event) => {
         event.preventDefault()
         const normalized = query.trim()
         if (normalized) navigate(`/search?q=${encodeURIComponent(normalized)}`)
     }
     const signOut = async () => {
-        await logout()
-        navigate('/login', { replace: true })
+        try {
+            await logout()
+            navigate('/login', { replace: true })
+        } catch (error) {
+            setLayoutError(error)
+        }
     }
     return (
         <>
@@ -37,7 +43,12 @@ const AppLayout = () => {
                     </Navbar.Collapse>
                 </Container>
             </Navbar>
-            <Container as="main"><Outlet /></Container>
+            <Container as="main">
+                <ErrorAlert error={authError} onClose={clearAuthError} />
+                <ErrorAlert error={preferenceError} onClose={clearPreferenceError} />
+                <ErrorAlert error={layoutError} onClose={() => setLayoutError(null)} />
+                <Outlet />
+            </Container>
         </>
     )
 }

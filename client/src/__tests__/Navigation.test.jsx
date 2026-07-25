@@ -20,7 +20,7 @@ const stubUser = (user) => {
 
 const stubGuest = () => {
     vi.stubGlobal('fetch', vi.fn(() =>
-        Promise.resolve({ ok: false, status: 401, json: () => Promise.resolve({ message: 'Not authenticated' }) })
+        Promise.resolve({ ok: false, status: 401, json: () => Promise.resolve({ error: { code: 'AUTH_REQUIRED' } }) })
     ))
 }
 

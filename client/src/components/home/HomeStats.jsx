@@ -2,6 +2,7 @@ import { Card, Col, Row } from 'react-bootstrap'
 import { useTranslation } from 'react-i18next'
 import { getHomeStats } from '../../api/home.js'
 import { useAsyncData } from '../../hooks/useAsyncData.js'
+import ErrorAlert from '../common/ErrorAlert.jsx'
 
 const TILE_KEYS = ['resumesLast24h', 'totalPositions', 'totalCandidates', 'totalRecruiters', 'totalSubmittedResumes']
 
@@ -9,7 +10,7 @@ const HomeStats = () => {
     const { t } = useTranslation()
     const { data: stats, error } = useAsyncData(getHomeStats)
 
-    if (error) return <div className="alert alert-danger">{error}</div>
+    if (error) return <ErrorAlert error={error} />
 
     return (
         <Row className="g-3 mb-4">

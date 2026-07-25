@@ -2,63 +2,75 @@ import { useCallback, useEffect, useState } from 'react'
 import * as authApi from '../api/auth.js'
 import { AuthContext } from './auth-context.js'
 
+const isExpectedGuest = (error) => error?.code === 'AUTH_REQUIRED'
+
+const loadAuthState = async () => {
+    try {
+        return { user: await authApi.me(), error: null }
+    } catch (error) {
+        return { user: null, error: isExpectedGuest(error) ? null : error }
+    }
+}
+
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null)
     const [loading, setLoading] = useState(true)
+    const [error, setError] = useState(null)
+
+    const applyAuthState = useCallback((state) => {
+        setUser(state.user)
+        setError(state.error)
+    }, [])
+
+    const acceptUser = useCallback((current) => {
+        applyAuthState({ user: current, error: null })
+        return current
+    }, [applyAuthState])
 
     const refresh = useCallback(async () => {
-        try {
-            const current = await authApi.me()
-            setUser(current)
-        } catch {
-            setUser(null)
-        } finally {
-            setLoading(false)
-        }
-    }, [])
+        setLoading(true)
+        const state = await loadAuthState()
+        applyAuthState(state)
+        setLoading(false)
+        return state.user
+    }, [applyAuthState])
 
     useEffect(() => {
         let active = true
 
-        authApi.me()
-            .then((current) => {
-                if (active) setUser(current)
-            })
-            .catch(() => {
-                if (active) setUser(null)
-            })
-            .finally(() => {
-                if (active) setLoading(false)
-            })
+        loadAuthState().then((state) => {
+            if (!active) return
+
+            applyAuthState(state)
+            setLoading(false)
+        })
 
         return () => {
             active = false
         }
-    }, [])
+    }, [applyAuthState])
 
-    const login = async (credentials) => {
-        const current = await authApi.login(credentials)
-        setUser(current)
-        return current
-    }
+    const login = async (credentials) => {return acceptUser(await authApi.login(credentials))}
 
-    const register = async (data) => {
-        const current = await authApi.register(data)
-        setUser(current)
-        return current
-    }
+    const register = async (data) => {return acceptUser(await authApi.register(data))}
 
     const logout = async () => {
         await authApi.logout()
-        setUser(null)
+        applyAuthState({ user: null, error: null })
     }
 
     const updateUser = (patch) => {
-        setUser((prev) => (prev ? { ...prev, ...patch } : prev))
+        setUser((current) => current
+            ? { ...current, ...patch }
+            : current)
     }
 
+    const clearError = useCallback(() => {setError(null)}, [])
+
+    const value = {user, loading, error, login, register, logout, refresh, updateUser, clearError,}
+
     return (
-        <AuthContext.Provider value={{ user, loading, login, register, logout, refresh, updateUser }}>
+        <AuthContext.Provider value={value}>
             {children}
         </AuthContext.Provider>
     )

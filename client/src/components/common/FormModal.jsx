@@ -1,12 +1,12 @@
 import { Button, Form, Modal } from 'react-bootstrap'
-import DismissibleAlert from './DismissibleAlert.jsx'
+import ErrorAlert from './ErrorAlert.jsx'
 
 const FormModal = ({ show, onClose, onSubmit, title, error = null, cancelLabel, submitLabel, submitDisabled = false, size = undefined, children }) => (
     <Modal show={show} onHide={onClose} size={size}>
         <Form onSubmit={onSubmit}>
             <Modal.Header closeButton><Modal.Title>{title}</Modal.Title></Modal.Header>
             <Modal.Body>
-                <DismissibleAlert variant="danger">{error}</DismissibleAlert>
+                <ErrorAlert error={error} />
                 {children}
             </Modal.Body>
             <Modal.Footer>

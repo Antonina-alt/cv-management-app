@@ -1,3 +1,4 @@
+import { ERROR_CODES } from "../lib/errorCodes.js";
 import { prisma } from "../lib/prisma.js";
 import { projectInclude } from "../lib/prismaIncludes.js";
 import { validateProjectDates } from "../lib/projectDates.js";
@@ -8,28 +9,27 @@ import { deleteVersioned, ensureUpdated, updateVersioned, VERSION_CONFLICT } fro
 import { requireNonEmptyString, requireVersion } from "../lib/validation.js";
 
 const projectFields = {
-    title: (value) => requireNonEmptyString(value, "title is required"),
+    title: (value) => requireNonEmptyString(value, ERROR_CODES.PROJECT_TITLE_REQUIRED, "title"),
     description: (value) => value,
 };
 
 const resolveDates = (body, current = {}) => {
     const result = validateProjectDates(body, current);
-    if (result.error) badRequest(result.error.message, {
-        code: result.error.code,
-        field: result.error.field,
-    });
+    if (result.error) badRequest(result.error.code, result.error);
     return result.data;
 };
 
 const loadProject = async (candidateId, projectId) => {
     const project = await prisma.project.findUnique({ where: { id: projectId } });
-    if (!project || project.candidateId !== candidateId) notFound("project not found");
+    if (!project || project.candidateId !== candidateId) notFound(ERROR_CODES.PROJECT_NOT_FOUND);
     return project;
 };
 
-const throwProjectConflict = async (projectId) => conflict("Version conflict", {
-    project: await prisma.project.findUnique({ where: { id: projectId }, include: projectInclude }),
-});
+const throwProjectConflict = async (projectId) => {
+    const project = await prisma.project.findUnique({ where: { id: projectId }, include: projectInclude });
+    if (!project) notFound(ERROR_CODES.PROJECT_NOT_FOUND);
+    conflict(ERROR_CODES.VERSION_CONFLICT, { resource: "project", project });
+};
 
 const createData = (candidateId, body, title, tagIds, dates) => ({
     candidateId,
@@ -40,7 +40,7 @@ const createData = (candidateId, body, title, tagIds, dates) => ({
 });
 
 export const createProject = (candidateId, body) => {
-    const title = requireNonEmptyString(body.title, "title is required");
+    const title = requireNonEmptyString(body.title, ERROR_CODES.PROJECT_TITLE_REQUIRED, "title");
     const dates = resolveDates(body);
     return prisma.$transaction(async (tx) => {
         const tagIds = await resolveTagIds(tx, Array.isArray(body.tags) ? body.tags : []);

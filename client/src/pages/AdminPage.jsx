@@ -2,11 +2,10 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { assignRole, deleteUser, removeRole, setUserBlocked } from '../api/admin.js'
-import { ConflictError } from '../api/http.js'
 import RoleModal from '../components/admin/RoleModal.jsx'
 import UserList from '../components/admin/UserList.jsx'
 import ConfirmationModal from '../components/common/ConfirmationModal.jsx'
-import DismissibleAlert from '../components/common/DismissibleAlert.jsx'
+import ErrorAlert from '../components/common/ErrorAlert.jsx'
 import Toolbar from '../components/common/Toolbar.jsx'
 import { useAuth } from '../context/auth-context.js'
 import { useSelection } from '../hooks/useSelection.js'
@@ -34,7 +33,7 @@ const AdminPage = () => {
             await Promise.all(targets.map((item) => setUserBlocked(item.id, isBlocked, item.version)))
             setBanner(null)
         } catch (error) {
-            setBanner(error instanceof ConflictError ? t('admin.conflict') : error.message)
+            setBanner(error)
         }
         selection.clear()
         refreshList()
@@ -44,7 +43,7 @@ const AdminPage = () => {
             await Promise.all(selection.items.filter(({ id }) => id !== user.id).map(({ id, version }) => deleteUser(id, version)))
             setBanner(null)
         } catch (error) {
-            setBanner(error instanceof ConflictError ? t('admin.conflict') : error.message)
+            setBanner(error)
         }
         selection.clear()
         closeModal()
@@ -61,7 +60,7 @@ const AdminPage = () => {
                 navigate('/')
             } else refreshList()
         } catch (error) {
-            setFormError(error.message)
+            setFormError(error)
         }
     }
     const includesSelf = selection.items.some(({ id }) => id === user.id)
@@ -75,7 +74,7 @@ const AdminPage = () => {
     return (
         <div>
             <h1>{t('admin.title')}</h1>
-            <DismissibleAlert onClose={() => setBanner(null)}>{banner}</DismissibleAlert>
+            <ErrorAlert error={banner} onClose={() => setBanner(null)} />
             <Toolbar actions={actions} />
             <UserList selectedIds={selection.ids} onToggleRow={selection.toggle} onToggleAll={selection.toggleAll} refreshToken={refreshToken} />
             {modal === 'roles' && <RoleModal show user={selection.single} onClose={closeModal} onSubmit={handleRoles} error={formError} />}

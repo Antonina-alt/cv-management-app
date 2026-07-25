@@ -6,7 +6,7 @@ import { useAsyncData } from '../../hooks/useAsyncData.js'
 import { getRecentAttributeIds } from '../../lib/recentAttributes.js'
 import CommonDataTable from '../common/CommonDataTable.jsx'
 import { TABLE_MODE } from '../../lib/tableMode.js'
-import DismissibleAlert from '../common/DismissibleAlert.jsx'
+import ErrorAlert from '../common/ErrorAlert.jsx'
 import AttributeTypeBadge from './AttributeTypeBadge.jsx'
 
 const AttributeList = ({ selectedIds = [], onToggleRow = undefined, onToggleAll = undefined, refreshToken = 0, excludeIds = undefined, excludeSystem = false }) => {
@@ -42,7 +42,7 @@ const AttributeList = ({ selectedIds = [], onToggleRow = undefined, onToggleAll 
                     <div className="d-flex flex-wrap gap-2">{recent.map((attribute) => <Button key={attribute.id} size="sm" variant={selectedIds.includes(attribute.id) ? 'primary' : 'outline-secondary'} onClick={() => onToggleRow?.(attribute)}>{attribute.name}</Button>)}</div>
                 </div>
             )}
-            <DismissibleAlert variant="danger">{error}</DismissibleAlert>
+            <ErrorAlert error={error} />
             {loading ? (<div className="text-muted mb-2">{t('admin.loading')}</div>) : (
                 <CommonDataTable data={visible} columns={columns} emptyMessage={t('attributes.empty')} mode={onToggleRow ? TABLE_MODE.MULTIPLE : TABLE_MODE.READ_ONLY} selectedIds={selectedIds} onToggleRow={onToggleRow} onToggleAll={onToggleAll} getRowLabel={(attribute) => attribute.name} />
             )}

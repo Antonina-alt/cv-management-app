@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { ConflictError } from '../api/http.js'
 import { getPosition, updatePosition } from '../api/positions.js'
 import { createResume } from '../api/resumes.js'
-import DismissibleAlert from '../components/common/DismissibleAlert.jsx'
+import ErrorAlert from '../components/common/ErrorAlert.jsx'
 import PositionAccessRulesSection from '../components/positions/PositionAccessRulesSection.jsx'
 import PositionAttributesSection from '../components/positions/PositionAttributesSection.jsx'
 import PositionFormModal from '../components/positions/PositionFormModal.jsx'
@@ -37,7 +37,7 @@ const PositionDetailPage = () => {
             return updated
         } catch (requestError) {
             if (requestError instanceof ConflictError) {
-                setBanner(t('positions.conflict'))
+                setBanner(requestError)
                 reload()
             }
             throw requestError
@@ -50,7 +50,7 @@ const PositionDetailPage = () => {
             setEditError(null)
         } catch (requestError) {
             if (requestError instanceof ConflictError) setShowEdit(false)
-            else setEditError(requestError.message)
+            else setEditError(requestError)
         }
     }
     const createCandidateResume = async () => {
@@ -59,18 +59,18 @@ const PositionDetailPage = () => {
             const resume = await createResume(position.id)
             navigate(`/resumes/${resume.id}`)
         } catch (requestError) {
-            setBanner(requestError.message)
+            setBanner(requestError)
         } finally {
             setCreatingResume(false)
         }
     }
     if (loading) return <p className="text-muted">{t('positions.loading')}</p>
-    if (error) return <div className="alert alert-danger">{error}</div>
+    if (error) return <ErrorAlert error={error} />
     if (!position) return null
     return (
         <div>
             <Button variant="link" className="px-0 mb-2" onClick={() => navigate(-1)}>&larr; {t('common.back')}</Button>
-            <DismissibleAlert onClose={() => setBanner(null)}>{banner}</DismissibleAlert>
+            <ErrorAlert error={banner} onClose={() => setBanner(null)} />
             <PositionSummaryCard position={position} editable={canManage} onEdit={() => setShowEdit(true)} t={t} />
             {canActAsCandidate && <div className="d-flex gap-2 mb-4"><Button variant="primary" disabled={creatingResume} onClick={position.myResume ? () => navigate(`/resumes/${position.myResume.id}`) : createCandidateResume}>{t(position.myResume ? 'positions.resumes.open' : 'positions.resumes.create')}</Button></div>}
             <h5>{t('positions.attributesSection.title')}</h5>
