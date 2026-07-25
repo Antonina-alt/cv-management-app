@@ -1,51 +1,19 @@
-import { useCallback, useState } from 'react'
-import { Tab, Tabs } from 'react-bootstrap'
-import { useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { getProfile } from '../api/profile.js'
 import ErrorAlert from '../components/common/ErrorAlert.jsx'
-import AboutSection from '../components/profile/AboutSection.jsx'
-import InformationSection from '../components/profile/InformationSection.jsx'
-import ProjectsSection from '../components/profile/ProjectsSection.jsx'
-import ResumesSection from '../components/profile/ResumesSection.jsx'
-import { useAuth } from '../context/auth-context.js'
-import { useAsyncData } from '../hooks/useAsyncData.js'
-import { formatName } from '../lib/formatName.js'
-import { useAutosaveQueue } from '../lib/useAutosaveQueue.js'
+import ProfileSummary from '../components/profile/ProfileSummary.jsx'
+import ProfileTabs from '../components/profile/ProfileTabs.jsx'
+import { useProfilePage } from '../hooks/pages/useProfilePage.js'
 
 const ProfilePage = () => {
     const { t } = useTranslation()
-    const { candidateId } = useParams()
-    const { user, updateUser } = useAuth()
-    const targetId = candidateId ?? user?.id
-    const [revision, setRevision] = useState(0)
-    const [banner, setBanner] = useState(null)
-    const autosave = useAutosaveQueue()
-    const fetchProfile = useCallback(() => getProfile(targetId), [targetId])
-    const { data: profile, setData: setProfile, loading, error } = useAsyncData(fetchProfile, { enabled: Boolean(targetId), refreshKey: revision })
-    const handleConflict = useCallback((conflict) => {
-        setBanner(conflict)
-        setRevision((value) => value + 1)
-    }, [])
-    const handleCandidateChange = useCallback((candidate) => {
-        setProfile((current) => current ? { ...current, user: candidate } : current)
-        if (candidate.id === user?.id) updateUser(candidate)
-    }, [setProfile, updateUser, user?.id])
-    if (error) return <ErrorAlert error={error} />
-    const displayUser = profile?.user ?? (candidateId ? null : user)
+    const page = useProfilePage()
+    if (page.error) return <ErrorAlert error={page.error} />
     return (
         <div>
             <h1>{t('profile.title')}</h1>
-            {displayUser && <><p>{formatName(displayUser)}</p><p>{displayUser.email}</p><p>{t('profile.roles')}: {displayUser.roles.join(', ')}</p></>}
-            <ErrorAlert error={banner} onClose={() => setBanner(null)} />
-            {loading || !profile ? <p className="text-muted">{t('attributes.loading')}</p> : (
-                <Tabs defaultActiveKey="about" mountOnEnter className="mb-3">
-                    <Tab eventKey="about" title={t('profile.tabs.about')}><AboutSection key={`about-${revision}`} candidate={profile.user} onCandidateChange={handleCandidateChange} autosave={autosave} onConflict={handleConflict} /></Tab>
-                    <Tab eventKey="info" title={t('profile.tabs.info')}><InformationSection key={`info-${revision}`} candidateId={targetId} initialValues={profile.attributeValues} autosave={autosave} onConflict={handleConflict} /></Tab>
-                    <Tab eventKey="projects" title={t('profile.tabs.projects')}><ProjectsSection key={`projects-${revision}`} candidateId={targetId} initialProjects={profile.projects} onConflict={handleConflict} /></Tab>
-                    <Tab eventKey="resumes" title={t('profile.tabs.resumes')}><ResumesSection resumes={profile.resumes} /></Tab>
-                </Tabs>
-            )}
+            <ProfileSummary user={page.displayUser} />
+            <ErrorAlert error={page.banner} onClose={page.clearBanner} />
+            {page.loading || !page.data ? <p className="text-muted">{t('attributes.loading')}</p> : <ProfileTabs page={page} />}
         </div>
     )
 }

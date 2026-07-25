@@ -1,84 +1,20 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { assignRole, deleteUser, removeRole, setUserBlocked } from '../api/admin.js'
-import RoleModal from '../components/admin/RoleModal.jsx'
+import AdminDialogs from '../components/admin/AdminDialogs.jsx'
+import AdminToolbar from '../components/admin/AdminToolbar.jsx'
 import UserList from '../components/admin/UserList.jsx'
-import ConfirmationModal from '../components/common/ConfirmationModal.jsx'
 import ErrorAlert from '../components/common/ErrorAlert.jsx'
-import Toolbar from '../components/common/Toolbar.jsx'
-import { useAuth } from '../context/auth-context.js'
-import { useSelection } from '../hooks/useSelection.js'
-import { formatName } from '../lib/formatName.js'
+import { useAdminPage } from '../hooks/pages/useAdminPage.js'
 
 const AdminPage = () => {
     const { t } = useTranslation()
-    const { user, refresh } = useAuth()
-    const navigate = useNavigate()
-    const selection = useSelection()
-    const [refreshToken, setRefreshToken] = useState(0)
-    const [modal, setModal] = useState(null)
-    const [formError, setFormError] = useState(null)
-    const [banner, setBanner] = useState(null)
-    const refreshList = () => setRefreshToken((value) => value + 1)
-    const closeModal = () => {
-        setModal(null)
-        setFormError(null)
-    }
-    const setBlocked = async (isBlocked) => {
-        const targets = isBlocked
-            ? selection.items.filter((item) => !item.isBlocked && item.id !== user.id)
-            : selection.items.filter((item) => item.isBlocked)
-        try {
-            await Promise.all(targets.map((item) => setUserBlocked(item.id, isBlocked, item.version)))
-            setBanner(null)
-        } catch (error) {
-            setBanner(error)
-        }
-        selection.clear()
-        refreshList()
-    }
-    const handleDelete = async () => {
-        try {
-            await Promise.all(selection.items.filter(({ id }) => id !== user.id).map(({ id, version }) => deleteUser(id, version)))
-            setBanner(null)
-        } catch (error) {
-            setBanner(error)
-        }
-        selection.clear()
-        closeModal()
-        refreshList()
-    }
-    const handleRoles = async ({ toAdd, toRemove }) => {
-        try {
-            await Promise.all([...toAdd.map((role) => assignRole(selection.single.id, role)), ...toRemove.map((role) => removeRole(selection.single.id, role))])
-            const removedOwnAdmin = selection.single.id === user.id && toRemove.includes('ADMIN')
-            closeModal()
-            selection.clear()
-            if (removedOwnAdmin) {
-                await refresh()
-                navigate('/')
-            } else refreshList()
-        } catch (error) {
-            setFormError(error)
-        }
-    }
-    const includesSelf = selection.items.some(({ id }) => id === user.id)
-    const actions = [
-        { key: 'profile', label: t('admin.toolbar.viewProfile'), variant: 'outline-primary', disabled: !selection.single, onClick: () => navigate(`/profile/${selection.single.id}`) },
-        { key: 'block', label: t('admin.toolbar.block'), variant: 'outline-secondary', disabled: !selection.items.length || includesSelf || selection.items.every(({ isBlocked }) => isBlocked), onClick: () => setBlocked(true) },
-        { key: 'unblock', label: t('admin.toolbar.unblock'), variant: 'outline-secondary', disabled: !selection.items.length || selection.items.every(({ isBlocked }) => !isBlocked), onClick: () => setBlocked(false) },
-        { key: 'roles', label: t('admin.toolbar.manageRoles'), variant: 'outline-primary', disabled: !selection.single, onClick: () => setModal('roles') },
-        { key: 'delete', label: t('admin.toolbar.delete'), variant: 'outline-danger', disabled: !selection.items.length || includesSelf, onClick: () => setModal('delete') },
-    ]
+    const page = useAdminPage()
     return (
         <div>
             <h1>{t('admin.title')}</h1>
-            <ErrorAlert error={banner} onClose={() => setBanner(null)} />
-            <Toolbar actions={actions} />
-            <UserList selectedIds={selection.ids} onToggleRow={selection.toggle} onToggleAll={selection.toggleAll} refreshToken={refreshToken} />
-            {modal === 'roles' && <RoleModal show user={selection.single} onClose={closeModal} onSubmit={handleRoles} error={formError} />}
-            <ConfirmationModal show={modal === 'delete'} onCancel={closeModal} onConfirm={handleDelete} title={t('admin.deleteConfirm.title')} body={t('admin.deleteConfirm.body', { names: selection.items.map(formatName).join(', ') })} cancelLabel={t('admin.roleModal.cancel')} confirmLabel={t('admin.toolbar.delete')} />
+            <ErrorAlert error={page.banner} onClose={page.clearBanner} />
+            <AdminToolbar selection={page.selection} includesSelf={page.includesSelf} onViewProfile={page.viewProfile} onBlock={() => page.setBlocked(true)} onUnblock={() => page.setBlocked(false)} onRoles={() => page.dialog.open('roles')} onDelete={() => page.dialog.open('delete')} />
+            <UserList selectedIds={page.selection.ids} onToggleRow={page.selection.toggle} onToggleAll={page.selection.toggleAll} refreshToken={page.refreshToken} />
+            <AdminDialogs dialog={page.dialog} selection={page.selection} onDelete={page.deleteSelected} onRoles={page.updateRoles} />
         </div>
     )
 }
