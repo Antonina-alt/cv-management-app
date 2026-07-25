@@ -2,7 +2,9 @@ import { useMemo } from 'react'
 import { wireCheckboxCell } from '../lib/dataTableCheckbox.js'
 import { CONTROL_COLUMN_INDEX, SELECT_COLUMN_INDEX } from '../lib/dataTableConfig.js'
 import { useLatest } from './useLatest.js'
+import DT from 'datatables.net-bs5'
 
+const responsiveRenderer = DT.Responsive.renderer.listHiddenNodes()
 const shouldIgnoreRowClick = (target) => target.closest('.dtr-control, a, button, input, select, textarea, label')
 const mergeLanguage = (base, custom = {}) => ({
     ...base,
@@ -24,7 +26,7 @@ export const useDataTableOptions = ({
     onToggleAll,
     onRowClick,
     headerCheckboxRef,
-    selectAllLabel,
+    selectAllLabel
 }) => {
     const dataRef = useLatest(data)
     const selectedRef = useLatest(selectedIds)
@@ -43,7 +45,7 @@ export const useDataTableOptions = ({
             pagingType: 'full_numbers',
             ...options,
             order: options.order ?? [[dataColumnOffset, 'asc']],
-            responsive: options.responsive === false ? false : { ...responsive, details: { type: 'column', target: CONTROL_COLUMN_INDEX, ...details } },
+            responsive: options.responsive === false ? false : { ...responsive, details: { type: 'column', target: CONTROL_COLUMN_INDEX, renderer: responsiveRenderer, ...details } },
             language: mergeLanguage(language, options.language),
             rowCallback: (row, rowData, ...args) => {
                 if (isMultiple) {

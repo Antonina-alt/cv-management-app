@@ -1,7 +1,7 @@
 import { useMemo, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import 'datatables.net-bs5/css/dataTables.bootstrap5.css'
-import 'datatables.net-responsive'
+import 'datatables.net-responsive-bs5'
 import 'datatables.net-responsive-bs5/css/responsive.bootstrap5.css'
 import { useDataTableOptions } from '../../hooks/useDataTableOptions.js'
 import { useDataTableSelection } from '../../hooks/useDataTableSelection.js'
