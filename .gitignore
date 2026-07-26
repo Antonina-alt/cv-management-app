@@ -1,8 +1,18 @@
 .env
+.env.*
+!.env.example
+!**/.env.example
 
-server/generated/prisma
+node_modules/
 
-logs
+dist/
+dist-ssr/
+.vite/
+coverage/
+
+/server/generated/prisma/
+
+logs/
 *.log
 npm-debug.log*
 yarn-debug.log*
@@ -10,28 +20,24 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
-*.local
 
 .vscode/*
 !.vscode/extensions.json
-.idea
+.idea/
+
 .DS_Store
+Thumbs.db
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
-/.playwright-mcp/
-CLAUDE.md
-.claude/
-.mcp.json
-.playwright-mcp/
-.cursor/
-.cursorignore
 
-# Logs
-*.log
-npm-debug.log*
+/.claude/
+/.cursor/
+/.mcp.json
+
+playwright-report/
+test-results/
+blob-report/
+.playwright-mcp/
